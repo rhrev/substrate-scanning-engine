@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "substrate-scanning-engine"
+version = "2.0.0"
+description = "Geometric parameter generation for L-functions and spectral systems"
+readme = "README.md"
+license = {text = "AGPL-3.0-or-later"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Ricardo Hernández Reveles", email = "rhreve@gmail.com"}
+]
+keywords = [
+    "Riemann zeta function",
+    "spectral features",
+    "L-functions",
+    "Euler product",
+    "Substrate Scanning",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.24,<3.0",
+    "scipy>=1.10,<2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/rhrev/substrate-scanning-engine"
+Documentation = "https://github.com/rhrev/substrate-scanning-engine#readme"
+Repository = "https://github.com/rhrev/substrate-scanning-engine"
+
+

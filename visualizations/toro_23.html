@@ -1,0 +1,494 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Línea Crítica sobre 𝕋²₍₂,₃₎</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #07070c;
+    color: #e0dcd4;
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+    cursor: grab;
+  }
+  body:active { cursor: grabbing; }
+  canvas { display: block; }
+
+  #title-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 14px 24px 10px;
+    background: linear-gradient(180deg, rgba(7,7,12,0.94) 0%, rgba(7,7,12,0) 100%);
+    z-index: 10; pointer-events: none;
+  }
+  #title-bar h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: clamp(14px, 2.4vw, 22px);
+    letter-spacing: 0.02em;
+    color: #f0ecdf;
+  }
+  #title-bar .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(8px, 1.1vw, 10.5px);
+    font-weight: 300;
+    letter-spacing: 0.28em;
+    color: #e09460;
+    margin-top: 3px;
+    text-transform: uppercase;
+  }
+
+  #panel {
+    position: fixed;
+    top: 80px; right: 16px;
+    width: clamp(220px, 22vw, 280px);
+    background: rgba(12,10,18,0.72);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgba(224,148,96,0.15);
+    border-radius: 10px;
+    padding: 16px 18px 14px;
+    z-index: 20;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(224,148,96,0.3) transparent;
+  }
+  #panel::-webkit-scrollbar { width: 4px; }
+  #panel::-webkit-scrollbar-thumb { background: rgba(224,148,96,0.3); border-radius: 2px; }
+
+  .ctrl-group { margin-bottom: 10px; }
+  .ctrl-group label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10px; font-weight: 400; letter-spacing: 0.08em; color: #a09888;
+    margin-bottom: 4px;
+  }
+  .ctrl-group label .val {
+    color: #e0b890; font-weight: 500; font-size: 10.5px;
+    min-width: 40px; text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 3px;
+    background: rgba(224,148,96,0.18); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+    background: #e09460; border: 2px solid #120e18; cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #e09460; border: 2px solid #120e18; cursor: pointer;
+  }
+
+  .toggle-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .toggle-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.06em;
+    padding: 4px 9px; border-radius: 4px;
+    border: 1px solid rgba(224,148,96,0.25); background: rgba(224,148,96,0.06);
+    color: #a09888; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .toggle-btn.active {
+    background: rgba(224,148,96,0.22); color: #f0d0a8;
+    border-color: rgba(224,148,96,0.5);
+  }
+  .toggle-btn:hover { border-color: rgba(224,148,96,0.45); }
+
+  .sweep-row { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .sweep-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 5px 12px;
+    border-radius: 4px; border: 1px solid rgba(224,148,96,0.3);
+    background: rgba(224,148,96,0.1); color: #e0b890; cursor: pointer; transition: all 0.2s;
+  }
+  .sweep-btn:hover { background: rgba(224,148,96,0.25); }
+  .sweep-btn.playing { background: rgba(220,130,70,0.35); border-color: rgba(224,148,96,0.6); }
+
+  .divider { height: 1px; background: rgba(224,148,96,0.1); margin: 10px 0; }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 11.5px; font-weight: 600;
+    color: #c8b098; margin-bottom: 8px; letter-spacing: 0.04em;
+  }
+
+  #legend {
+    position: fixed; bottom: 16px; left: 16px;
+    width: clamp(240px, 26vw, 340px);
+    background: rgba(12,10,18,0.68);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(224,148,96,0.12); border-radius: 10px;
+    padding: 14px 16px 12px; z-index: 20;
+    font-size: 10px; line-height: 1.7; color: #908878;
+    max-height: 38vh; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(224,148,96,0.2) transparent;
+  }
+  #legend::-webkit-scrollbar { width: 3px; }
+  #legend::-webkit-scrollbar-thumb { background: rgba(224,148,96,0.2); border-radius: 2px; }
+  #legend .eq {
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    color: #d8b088; font-size: 12px;
+  }
+  #legend .note { color: #685848; font-size: 9px; margin-top: 6px; line-height: 1.6; }
+
+  #readout {
+    position: fixed; bottom: 16px; right: 16px;
+    font-size: 9px; color: #584838; z-index: 10;
+    text-align: right; line-height: 1.6; pointer-events: none;
+  }
+
+  @media (max-width: 700px) {
+    #panel { top: auto; bottom: 10px; right: 10px; left: 10px; width: auto; max-height: 45vh; }
+    #legend { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="title-bar">
+  <h1>Embedding ℝ³ · Línea Crítica sobre 𝕋²<sub style="font-size:0.65em">₍₂,₃₎</sub></h1>
+  <div class="subtitle">Enrollamiento irracional · σ&thinsp;=&thinsp;½ · ln 3/ln 2 ≈ [1;1,1,2,1,3,1,…]</div>
+</div>
+
+<div id="panel">
+  <div class="section-title">Parámetros</div>
+
+  <div class="ctrl-group">
+    <label>t_max <span class="val" id="v-tmax">200</span></label>
+    <input type="range" id="s-tmax" min="10" max="800" value="200" step="1">
+  </div>
+  <div class="ctrl-group">
+    <label>R mayor <span class="val" id="v-R">1.60</span></label>
+    <input type="range" id="s-R" min="0.5" max="3.5" value="1.6" step="0.01">
+  </div>
+  <div class="ctrl-group">
+    <label>r tubo (escala) <span class="val" id="v-rtube">1.00</span></label>
+    <input type="range" id="s-rtube" min="0.2" max="3.0" value="1.0" step="0.01">
+  </div>
+  <div class="ctrl-group">
+    <label>Puntos <span class="val" id="v-pts">12000</span></label>
+    <input type="range" id="s-pts" min="2000" max="40000" value="12000" step="500">
+  </div>
+  <div class="ctrl-group">
+    <label>σ <span class="val" id="v-sigma">0.50</span></label>
+    <input type="range" id="s-sigma" min="0.10" max="0.90" value="0.50" step="0.01">
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Visualización</div>
+
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="btn-autorot">Autorot</button>
+    <button class="toggle-btn" id="btn-axes">Ejes</button>
+    <button class="toggle-btn active" id="btn-glow">Glow</button>
+    <button class="toggle-btn" id="btn-velocity">Color vel.</button>
+    <button class="toggle-btn active" id="btn-torus">Toro guía</button>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Barrido temporal</div>
+
+  <div class="sweep-row">
+    <button class="sweep-btn" id="btn-sweep">▶ Play</button>
+    <button class="sweep-btn" id="btn-reset">Reset</button>
+  </div>
+  <div class="ctrl-group">
+    <label>Velocidad <span class="val" id="v-speed">1.0</span></label>
+    <input type="range" id="s-speed" min="0.1" max="5.0" value="1.0" step="0.1">
+  </div>
+</div>
+
+<div id="legend">
+  <div class="eq">θ₂(t) = ln(2)·t &nbsp;&nbsp; θ₃(t) = ln(3)·t</div>
+  <div style="margin-top:6px;">
+    <span class="eq">r = p<sup>−σ</sup></span> &nbsp;→&nbsp; radio del tubo codifica σ<br>
+    Embedding estándar en ℝ³:<br>
+    <span class="eq">x = (R + r₂·cos θ₂)·cos θ₃</span><br>
+    <span class="eq">y = (R + r₂·cos θ₂)·sin θ₃</span><br>
+    <span class="eq">z = r₂·sin θ₂</span>
+  </div>
+  <div class="note">
+    ln 3/ln 2 ≈ 1.58496… es irracional ⟹ la curva es densa en 𝕋² (Weyl). Los convergentes [1;1,1,2,…] dan 1/1, 2/1, 3/2, 8/5, 11/7… — cada convergente es un "casi-cierre" visible como lóbulo. A t ~ 2π·3/ln 2 ≈ 27.2 la curva casi cierra (convergente 3/2); a t ~ 2π·8/ln 2 ≈ 72.5 otra quasi-clausura (8/5).
+  </div>
+</div>
+
+<div id="readout"></div>
+
+<script>
+(function(){
+  const state = {
+    tmax: 200, R: 1.6, rtubeScale: 1.0, numPoints: 12000, sigma: 0.5,
+    autoRotate: true, showAxes: false, showGlow: true, velocityColor: false, showTorus: true,
+    sweepPlaying: false, sweepT: 0, sweepSpeed: 1.0,
+  };
+
+  const ln2 = Math.log(2), ln3 = Math.log(3);
+
+  // ── Three.js ──
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x07070c);
+  scene.fog = new THREE.FogExp2(0x07070c, 0.025);
+
+  const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 200);
+  camera.position.set(3.8, 2.2, 3.8);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+
+  // ── Orbit ──
+  const orbit = {
+    target: new THREE.Vector3(0,0,0),
+    sph: new THREE.Spherical(5.8, Math.PI*0.42, Math.PI*0.25),
+    delta: new THREE.Spherical(), scale: 1,
+    pan: new THREE.Vector3(),
+    drag: false, panning: false,
+    px: 0, py: 0,
+    update() {
+      if (state.autoRotate && !this.drag) this.delta.theta -= 0.002;
+      const d = 0.08;
+      this.sph.theta += this.delta.theta * (1-d);
+      this.sph.phi += this.delta.phi * (1-d);
+      this.sph.phi = Math.max(0.05, Math.min(Math.PI-0.05, this.sph.phi));
+      this.sph.radius *= this.scale;
+      this.sph.radius = Math.max(1.5, Math.min(30, this.sph.radius));
+      this.scale = 1;
+      this.target.add(this.pan);
+      this.pan.multiplyScalar(1-d);
+      this.delta.theta *= (1-d);
+      this.delta.phi *= (1-d);
+      camera.position.setFromSpherical(this.sph).add(this.target);
+      camera.lookAt(this.target);
+    }
+  };
+
+  const el = renderer.domElement;
+  let lastTD = 0;
+  el.addEventListener('pointerdown', e => {
+    orbit.drag = true; orbit.panning = e.shiftKey || e.button===2;
+    orbit.px = e.clientX; orbit.py = e.clientY;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!orbit.drag) return;
+    const dx = e.clientX-orbit.px, dy = e.clientY-orbit.py;
+    orbit.px = e.clientX; orbit.py = e.clientY;
+    if (orbit.panning) {
+      const s = orbit.sph.radius*0.00008;
+      const r = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+      const u = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+      orbit.pan.add(r.multiplyScalar(-dx*s*100)).add(u.multiplyScalar(dy*s*100));
+    } else {
+      orbit.delta.theta -= dx*0.005;
+      orbit.delta.phi -= dy*0.005;
+    }
+  });
+  el.addEventListener('pointerup', () => { orbit.drag = false; });
+  el.addEventListener('wheel', e => { e.preventDefault(); orbit.scale *= e.deltaY>0?1.08:0.92; }, {passive:false});
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  el.addEventListener('touchstart', e => {
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      lastTD=Math.sqrt(dx*dx+dy*dy);
+    }
+  },{passive:true});
+  el.addEventListener('touchmove', e => {
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX;
+      const dy=e.touches[0].clientY-e.touches[1].clientY;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(lastTD>0) orbit.scale *= lastTD/d;
+      lastTD=d;
+    }
+  },{passive:true});
+
+  // ── Ghost torus (wireframe guide) ──
+  let torusMesh;
+  function buildGhostTorus() {
+    if (torusMesh) { scene.remove(torusMesh); torusMesh.geometry.dispose(); }
+    const r2 = Math.pow(2, -state.sigma) * state.rtubeScale;
+    const geom = new THREE.TorusGeometry(state.R, r2, 28, 64);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xe09460, wireframe: true, transparent: true, opacity: 0.045
+    });
+    torusMesh = new THREE.Mesh(geom, mat);
+    torusMesh.visible = state.showTorus;
+    scene.add(torusMesh);
+  }
+
+  // ── Axes ──
+  const axH = new THREE.AxesHelper(2.5);
+  axH.visible = false;
+  scene.add(axH);
+
+  // ── Curve ──
+  let lineGeom = new THREE.BufferGeometry();
+  let glowGeom = new THREE.BufferGeometry();
+  const lineMat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:0.94, linewidth:1 });
+  const glowMat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:0.1, linewidth:1 });
+  let line = new THREE.Line(lineGeom, lineMat);
+  let glowLine = new THREE.Line(glowGeom, glowMat);
+  glowLine.scale.set(1.015,1.015,1.015);
+  scene.add(line); scene.add(glowLine);
+
+  function computeCurve(tmax, N, R, rScale, sigma) {
+    const pos = new Float32Array(N*3);
+    const col = new Float32Array(N*3);
+    const dt = tmax / N;
+    const r2 = Math.pow(2, -sigma) * rScale;
+    const c = new THREE.Color();
+    let px=0,py=0,pz=0;
+
+    for (let i=0; i<N; i++) {
+      const t = i * dt;
+      const th2 = ln2 * t;
+      const th3 = ln3 * t;
+
+      const x = (R + r2*Math.cos(th2)) * Math.cos(th3);
+      const y = (R + r2*Math.cos(th2)) * Math.sin(th3);
+      const z = r2 * Math.sin(th2);
+
+      pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
+
+      if (state.velocityColor && i>0) {
+        const dx=x-px, dy=y-py, dz=z-pz;
+        const spd = Math.sqrt(dx*dx+dy*dy+dz*dz)/dt;
+        const ns = Math.min(spd/2.5, 1.0);
+        c.setHSL(0.07 - ns*0.08, 0.8, 0.35 + ns*0.35);
+      } else {
+        // Warm gradient: amber → copper → deep orange cycling with t
+        const hue = 0.06 + (t/tmax)*0.04;
+        const light = 0.45 + 0.15*Math.sin(t*0.3);
+        c.setHSL(hue, 0.78, light);
+      }
+      col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+      px=x; py=y; pz=z;
+    }
+    return {pos, col};
+  }
+
+  function rebuild() {
+    const effT = state.sweepPlaying ? state.sweepT : state.tmax;
+    const effN = state.sweepPlaying
+      ? Math.max(500, Math.round(state.numPoints*(state.sweepT/state.tmax)))
+      : state.numPoints;
+
+    const {pos, col} = computeCurve(effT, effN, state.R, state.rtubeScale, state.sigma);
+
+    lineGeom.dispose(); glowGeom.dispose();
+    lineGeom = new THREE.BufferGeometry();
+    lineGeom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    lineGeom.setAttribute('color', new THREE.BufferAttribute(col,3));
+    line.geometry = lineGeom;
+
+    if (state.showGlow) {
+      glowGeom = new THREE.BufferGeometry();
+      glowGeom.setAttribute('position', new THREE.BufferAttribute(pos.slice(),3));
+      glowGeom.setAttribute('color', new THREE.BufferAttribute(col.slice(),3));
+      glowLine.geometry = glowGeom;
+      glowLine.visible = true;
+    } else { glowLine.visible = false; }
+  }
+
+  // ── UI ──
+  const $ = id => document.getElementById(id);
+  function wire(sId, vId, prop, fmt, doRebuild=true) {
+    const s=$(sId), v=$(vId);
+    s.addEventListener('input', () => {
+      state[prop] = parseFloat(s.value);
+      v.textContent = fmt(state[prop]);
+      if (doRebuild) { rebuild(); buildGhostTorus(); }
+    });
+  }
+  wire('s-tmax','v-tmax','tmax', v=>v.toFixed(0));
+  wire('s-R','v-R','R', v=>v.toFixed(2));
+  wire('s-rtube','v-rtube','rtubeScale', v=>v.toFixed(2));
+  wire('s-pts','v-pts','numPoints', v=>v.toFixed(0));
+  wire('s-sigma','v-sigma','sigma', v=>v.toFixed(2));
+  wire('s-speed','v-speed','sweepSpeed', v=>v.toFixed(1), false);
+
+  function tog(id, prop, cb) {
+    $(id).addEventListener('click', () => {
+      state[prop] = !state[prop];
+      $(id).classList.toggle('active', state[prop]);
+      if(cb) cb();
+    });
+  }
+  tog('btn-autorot','autoRotate');
+  tog('btn-axes','showAxes', ()=>{ axH.visible=state.showAxes; });
+  tog('btn-glow','showGlow', rebuild);
+  tog('btn-velocity','velocityColor', rebuild);
+  tog('btn-torus','showTorus', ()=>{ if(torusMesh) torusMesh.visible=state.showTorus; });
+
+  const btnSw = $('btn-sweep');
+  btnSw.addEventListener('click', () => {
+    state.sweepPlaying = !state.sweepPlaying;
+    if (state.sweepPlaying) {
+      if (state.sweepT >= state.tmax) state.sweepT = 0;
+      btnSw.textContent = '⏸ Pause'; btnSw.classList.add('playing');
+    } else {
+      btnSw.textContent = '▶ Play'; btnSw.classList.remove('playing');
+      rebuild();
+    }
+  });
+  $('btn-reset').addEventListener('click', () => {
+    state.sweepT = 0; state.sweepPlaying = false;
+    btnSw.textContent = '▶ Play'; btnSw.classList.remove('playing');
+    rebuild();
+  });
+
+  // ── Readout ──
+  const rdEl = $('readout');
+  function readout() {
+    const eT = state.sweepPlaying ? state.sweepT.toFixed(1) : state.tmax.toFixed(0);
+    const r2 = Math.pow(2,-state.sigma);
+    rdEl.innerHTML =
+      `σ = ${state.sigma.toFixed(2)} &nbsp;|&nbsp; t ∈ [0, ${eT}]<br>`+
+      `r₂ = 2<sup>−σ</sup> = ${r2.toFixed(4)}<br>`+
+      `ω₂ = ln 2 = ${ln2.toFixed(5)} &nbsp; ω₃ = ln 3 = ${ln3.toFixed(5)}<br>`+
+      `ln 3/ln 2 = ${(ln3/ln2).toFixed(6)}…`;
+  }
+
+  // ── Loop ──
+  let last = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = (now-last)*0.001; last = now;
+
+    if (state.sweepPlaying) {
+      state.sweepT += dt * state.sweepSpeed * 15;
+      if (state.sweepT >= state.tmax) {
+        state.sweepT = state.tmax; state.sweepPlaying = false;
+        btnSw.textContent = '▶ Play'; btnSw.classList.remove('playing');
+      }
+      rebuild();
+    }
+
+    orbit.update();
+    readout();
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  buildGhostTorus();
+  rebuild();
+  animate(performance.now());
+})();
+</script>
+</body>
+</html>

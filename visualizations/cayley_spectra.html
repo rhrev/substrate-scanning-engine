@@ -1,0 +1,538 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espectros de Cayley · Gap Espectral como RH para Grafos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#04040c;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;}
+canvas#c{display:block;position:fixed;top:0;left:0;z-index:0;cursor:grab;}
+canvas#c:active{cursor:grabbing;}
+
+#hud{position:fixed;top:0;left:0;right:0;padding:7px 14px 4px;background:linear-gradient(180deg,rgba(4,4,12,0.97),rgba(4,4,12,0));z-index:10;pointer-events:none;}
+#hud h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(11px,1.7vw,16px);color:#eef0f4;}
+#hud .sub{font-size:clamp(6px,0.7vw,7.5px);font-weight:300;letter-spacing:0.15em;color:#404858;text-transform:uppercase;margin-top:1px;}
+
+#ctrl{position:fixed;top:38px;left:0;right:0;padding:4px 14px;z-index:25;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(4,4,12,0.93);border-bottom:1px solid rgba(80,160,200,0.06);}
+.cg{display:flex;align-items:center;gap:3px;}
+.cg label{font-size:7px;color:#506068;white-space:nowrap;}
+.cg .v{font-size:9px;font-weight:500;min-width:20px;text-align:right;}
+.cg select,.cg input[type="range"]{font-family:'IBM Plex Mono',monospace;font-size:7px;background:rgba(80,160,200,0.06);color:#80a8c0;border:1px solid rgba(80,160,200,0.1);border-radius:3px;outline:none;cursor:pointer;}
+.cg select{padding:2px 4px;}
+.cg input[type="range"]{-webkit-appearance:none;height:3px;border-radius:2px;width:clamp(50px,7vw,90px);}
+.cg input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#5090c0;border:2px solid #080814;cursor:pointer;}
+.btn{font-size:7px;padding:2px 6px;border-radius:3px;border:1px solid rgba(80,160,200,0.12);background:rgba(80,160,200,0.03);color:#607888;cursor:pointer;white-space:nowrap;}
+.btn.on{background:rgba(80,160,200,0.15);color:#90c0d0;border-color:rgba(80,160,200,0.25);}
+
+#spec{position:fixed;bottom:0;left:0;right:0;height:clamp(60px,10vh,90px);background:rgba(4,4,12,0.95);border-top:1px solid rgba(80,160,200,0.05);z-index:15;}
+#spec canvas{width:100%;height:100%;}
+
+#info{position:fixed;top:68px;right:8px;background:rgba(4,4,14,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(80,160,200,0.05);border-radius:6px;padding:7px 9px;z-index:20;font-size:7px;line-height:1.5;width:clamp(155px,15vw,200px);}
+.st{font-family:'Cormorant Garamond',serif;font-size:9px;font-weight:600;color:#6090a0;margin-bottom:2px;}
+.dv{height:1px;background:rgba(80,160,200,0.04);margin:4px 0;}
+.ir{display:flex;justify-content:space-between;gap:3px;padding:1px 0;font-size:6.5px;}
+.ir .il{color:#405060;}.ir .iv{font-weight:500;}
+.note{font-size:6.5px;color:#404850;line-height:1.5;margin-top:3px;}
+.warn{color:#c09040;font-size:6.5px;margin-top:3px;}
+.good{color:#40a060;}
+.bad{color:#c05040;}
+
+#info-left{position:fixed;top:68px;left:8px;background:rgba(4,4,14,0.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(80,160,200,0.05);border-radius:6px;padding:7px 9px;z-index:20;font-size:7px;line-height:1.5;max-width:clamp(155px,16vw,210px);}
+
+@media(max-width:700px){#info{display:none;}#info-left{display:none;}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <h1>Espectros de Cayley · El Gap Espectral como Hipótesis de Riemann para Grafos</h1>
+  <div class="sub">Eigenvalores del Laplaciano · Grafos de Ramanujan · Alon-Boppana como región libre de ceros</div>
+</div>
+
+<div id="ctrl">
+  <div class="cg"><label>Grupo</label><select id="sel-group">
+    <option value="cyclic">ℤ/nℤ</option>
+    <option value="dihedral">Dₙ</option>
+    <option value="symmetric">Sₙ</option>
+    <option value="product">ℤ/n × ℤ/m</option>
+  </select></div>
+  <div class="cg"><label>n</label><input type="range" id="s-n" min="5" max="80" value="20" step="1"><span class="v" style="color:#5090c0;" id="v-n">20</span></div>
+  <div class="cg"><label>generadores</label><input type="range" id="s-gen" min="1" max="6" value="2" step="1"><span class="v" style="color:#50c090;" id="v-gen">2</span></div>
+  <div class="cg"><label>eigvec</label><input type="range" id="s-eig" min="0" max="10" value="1" step="1"><span class="v" style="color:#c09050;" id="v-eig">1</span></div>
+  <button class="btn on" id="b-edges">Aristas</button>
+  <button class="btn on" id="b-color">Color eigvec</button>
+  <button class="btn" id="b-deform">Deformar</button>
+  <button class="btn on" id="b-ramanujan">Cota Ramanujan</button>
+</div>
+
+<div id="info-left">
+  <div class="st">Analogía con ζ</div>
+  <div class="note">
+    Producto de Euler → Grafo de Cayley<br>
+    ln(p) → generadores del grupo<br>
+    Ceros de ζ → eigenvalores de L<br>
+    Región libre → gap espectral<br>
+    RH → cota de Ramanujan<br>
+    de la Vallée Poussin → Alon-Boppana
+  </div>
+  <div class="dv"></div>
+  <div class="st">Lo que ves</div>
+  <div class="note">
+    <span style="color:#5090c0;">Nodos</span> = elementos del grupo<br>
+    <span style="color:#304060;">Aristas</span> = multiplicación por generador<br>
+    <span style="color:#c09050;">Color</span> = componente del eigenvector<br>
+    <span style="color:#40a060;">Barras</span> = espectro del Laplaciano<br>
+    <span style="color:#c05040;">Línea roja</span> = cota de Ramanujan
+  </div>
+</div>
+
+<div id="info">
+  <div class="st">Diagnóstico</div>
+  <div class="ir"><span class="il">|G|</span><span class="iv" style="color:#5090c0;" id="rd-n">—</span></div>
+  <div class="ir"><span class="il">|S| (generadores)</span><span class="iv" style="color:#50c090;" id="rd-gen">—</span></div>
+  <div class="ir"><span class="il">grado (valency)</span><span class="iv" id="rd-deg">—</span></div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">λ₁ (gap)</span><span class="iv" style="color:#40a060;" id="rd-gap">—</span></div>
+  <div class="ir"><span class="il">λ_max</span><span class="iv" id="rd-lmax">—</span></div>
+  <div class="ir"><span class="il">Ramanujan bound</span><span class="iv" style="color:#c05040;" id="rd-ram">—</span></div>
+  <div class="ir"><span class="il">¿Ramanujan?</span><span class="iv" id="rd-isram">—</span></div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">eigvec mostrado</span><span class="iv" style="color:#c09050;" id="rd-eig">—</span></div>
+  <div class="ir"><span class="il">λ seleccionado</span><span class="iv" id="rd-eigval">—</span></div>
+  <div class="dv"></div>
+  <div class="note">
+    Grafo de Ramanujan: todas las eigenvalores<br>
+    no triviales satisfacen |λ| ≤ 2√(d−1).<br>
+    Es el análogo de RH para grafos regulares.
+  </div>
+</div>
+
+<div id="spec"><canvas id="sc"></canvas></div>
+
+<script>
+(function(){
+const PI=Math.PI;
+const $=id=>document.getElementById(id);
+
+// ── State ──
+const S={n:20,nGen:2,eigIdx:1,group:'cyclic',showEdges:true,showColor:true,deform:false,showRam:true};
+
+// ── Group operations ──
+function buildCayley(group,n,nGen){
+  let N,adj,gens,labels;
+  
+  if(group==='cyclic'){
+    N=n;
+    gens=[];
+    for(let g=1;g<=nGen;g++) gens.push(g);
+    adj=new Uint8Array(N*N);
+    for(let i=0;i<N;i++){
+      for(const g of gens){
+        const j=(i+g)%N;
+        adj[i*N+j]=1;adj[j*N+i]=1;
+      }
+    }
+  }else if(group==='dihedral'){
+    N=2*n;
+    // Elements: r^k (k=0..n-1) and s·r^k (k=0..n-1)
+    // r: rotation, s: reflection
+    adj=new Uint8Array(N*N);
+    // Generators: r and s
+    for(let k=0;k<n;k++){
+      // r: k → k+1 mod n (rotation group)
+      const rk=(k+1)%n;
+      adj[k*N+rk]=1;adj[rk*N+k]=1;
+      // same for reflected elements
+      const sk=n+k, srk=n+(k+1)%n;
+      adj[sk*N+srk]=1;adj[srk*N+sk]=1;
+      // s: k ↔ n+k (reflection)
+      adj[k*N+(n+k)]=1;adj[(n+k)*N+k]=1;
+    }
+    if(nGen>=3){
+      // Add r² as generator
+      for(let k=0;k<n;k++){
+        const r2k=(k+2)%n;
+        adj[k*N+r2k]=1;adj[r2k*N+k]=1;
+        const sk=n+k,sr2k=n+(k+2)%n;
+        adj[sk*N+sr2k]=1;adj[sr2k*N+sk]=1;
+      }
+    }
+  }else if(group==='symmetric'){
+    // S_n for small n (n≤6, |S_n|=n!)
+    const nn=Math.min(n,6);
+    const perms=[];
+    function permute(arr,l,r){
+      if(l===r){perms.push([...arr]);return;}
+      for(let i=l;i<=r;i++){[arr[l],arr[i]]=[arr[i],arr[l]];permute(arr,l+1,r);[arr[l],arr[i]]=[arr[i],arr[l]];}
+    }
+    permute([...Array(nn).keys()],0,nn-1);
+    N=perms.length;
+    
+    const permIdx=new Map();
+    perms.forEach((p,i)=>permIdx.set(p.join(','),i));
+    
+    // Generators: adjacent transpositions (1,2), (2,3), ...
+    const genPerms=[];
+    for(let g=0;g<Math.min(nGen,nn-1);g++){
+      const gp=[...Array(nn).keys()];
+      [gp[g],gp[g+1]]=[gp[g+1],gp[g]];
+      genPerms.push(gp);
+    }
+    
+    adj=new Uint8Array(N*N);
+    for(let i=0;i<N;i++){
+      for(const gp of genPerms){
+        const result=new Array(nn);
+        for(let k=0;k<nn;k++) result[k]=perms[i][gp[k]];
+        const j=permIdx.get(result.join(','));
+        if(j!==undefined){adj[i*N+j]=1;adj[j*N+i]=1;}
+      }
+    }
+  }else{ // product Z/n x Z/m
+    const m=Math.max(3,Math.floor(n/3));
+    N=n*m;
+    adj=new Uint8Array(N*N);
+    for(let a=0;a<n;a++){
+      for(let b=0;b<m;b++){
+        const i=a*m+b;
+        // Generator (1,0)
+        const j=((a+1)%n)*m+b;
+        adj[i*N+j]=1;adj[j*N+i]=1;
+        // Generator (0,1)
+        const k=a*m+(b+1)%m;
+        adj[i*N+k]=1;adj[k*N+i]=1;
+        if(nGen>=3){
+          const l=((a+1)%n)*m+(b+1)%m;
+          adj[i*N+l]=1;adj[l*N+i]=1;
+        }
+      }
+    }
+  }
+  
+  // Degree
+  const deg=new Float64Array(N);
+  for(let i=0;i<N;i++){let d=0;for(let j=0;j<N;j++)d+=adj[i*N+j];deg[i]=d;}
+  
+  return{N,adj,deg};
+}
+
+// ── Laplacian eigenvalues (Jacobi for small N) ──
+function laplacianSpectrum(N,adj,deg){
+  // L = D - A (unnormalized Laplacian)
+  const L=new Float64Array(N*N);
+  for(let i=0;i<N;i++){
+    L[i*N+i]=deg[i];
+    for(let j=0;j<N;j++){
+      if(adj[i*N+j]) L[i*N+j]=-1;
+    }
+  }
+  
+  // For small N, use power iteration on shifted matrix for all eigenvalues
+  // Actually, use Jacobi eigenvalue algorithm for symmetric matrices
+  if(N>150){
+    // Too large — use power iteration for a few eigenvalues
+    return approxSpectrum(L,N);
+  }
+  
+  return jacobiEigen(L,N);
+}
+
+function jacobiEigen(A,N){
+  // Copy A
+  const M=new Float64Array(A);
+  const V=new Float64Array(N*N);
+  for(let i=0;i<N;i++) V[i*N+i]=1; // identity
+  
+  const maxIter=100*N;
+  for(let iter=0;iter<maxIter;iter++){
+    // Find largest off-diagonal
+    let maxVal=0,p=0,q=1;
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+      if(Math.abs(M[i*N+j])>maxVal){maxVal=Math.abs(M[i*N+j]);p=i;q=j;}
+    }
+    if(maxVal<1e-10) break;
+    
+    // Compute rotation
+    const diff=M[q*N+q]-M[p*N+p];
+    let t;
+    if(Math.abs(M[p*N+q])<1e-15*Math.abs(diff)){
+      t=M[p*N+q]/diff;
+    }else{
+      const phi=diff/(2*M[p*N+q]);
+      t=1/(Math.abs(phi)+Math.sqrt(phi*phi+1));
+      if(phi<0) t=-t;
+    }
+    const c=1/Math.sqrt(t*t+1),s=t*c;
+    const tau=s/(1+c);
+    
+    // Apply rotation
+    const apq=M[p*N+q];
+    M[p*N+p]-=t*apq;M[q*N+q]+=t*apq;M[p*N+q]=0;M[q*N+p]=0;
+    
+    for(let r=0;r<N;r++){
+      if(r===p||r===q) continue;
+      const rp=M[r*N+p],rq=M[r*N+q];
+      M[r*N+p]=rp-s*(rq+tau*rp);M[p*N+r]=M[r*N+p];
+      M[r*N+q]=rq+s*(rp-tau*rq);M[q*N+r]=M[r*N+q];
+    }
+    
+    for(let r=0;r<N;r++){
+      const vp=V[r*N+p],vq=V[r*N+q];
+      V[r*N+p]=vp-s*(vq+tau*vp);
+      V[r*N+q]=vq+s*(vp-tau*vq);
+    }
+  }
+  
+  // Extract eigenvalues and sort
+  const eigs=[];
+  for(let i=0;i<N;i++) eigs.push({val:M[i*N+i],idx:i});
+  eigs.sort((a,b)=>a.val-b.val);
+  
+  const vals=eigs.map(e=>e.val);
+  const vecs=[];
+  for(const e of eigs){
+    const v=new Float64Array(N);
+    for(let r=0;r<N;r++) v[r]=V[r*N+e.idx];
+    vecs.push(v);
+  }
+  
+  return{vals,vecs};
+}
+
+function approxSpectrum(L,N){
+  // Simple: just return diagonal approximation for large N
+  const vals=[];
+  for(let i=0;i<N;i++) vals.push(L[i*N+i]);
+  vals.sort((a,b)=>a-b);
+  return{vals,vecs:[]};
+}
+
+// ── Three.js scene ──
+const cv=$('c');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x04040c);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,200);
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+
+const O={sph:new THREE.Spherical(6,PI*0.4,PI*0.2),d:new THREE.Spherical(),sc:1,tgt:new THREE.Vector3(),pan:new THREE.Vector3(),dr:false,pn:false,px:0,py:0,
+update(){if(!this.dr)this.d.theta-=0.001;const f=0.07;this.sph.theta+=this.d.theta*(1-f);this.sph.phi+=this.d.phi*(1-f);this.sph.phi=Math.max(0.05,Math.min(PI-0.05,this.sph.phi));this.sph.radius*=this.sc;this.sph.radius=Math.max(1,Math.min(30,this.sph.radius));this.sc=1;this.tgt.add(this.pan);this.pan.multiplyScalar(1-f);this.d.theta*=(1-f);this.d.phi*=(1-f);cam.position.setFromSpherical(this.sph).add(this.tgt);cam.lookAt(this.tgt);}};
+cv.addEventListener('pointerdown',e=>{O.dr=true;O.pn=e.shiftKey||e.button===2;O.px=e.clientX;O.py=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!O.dr)return;const dx=e.clientX-O.px,dy=e.clientY-O.py;O.px=e.clientX;O.py=e.clientY;if(O.pn){const r=new THREE.Vector3().setFromMatrixColumn(cam.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(cam.matrix,1);O.pan.add(r.multiplyScalar(-dx*0.01)).add(u.multiplyScalar(dy*0.01));}else{O.d.theta-=dx*0.004;O.d.phi-=dy*0.004;}});
+cv.addEventListener('pointerup',()=>O.dr=false);
+cv.addEventListener('wheel',e=>{e.preventDefault();O.sc*=e.deltaY>0?1.06:0.94;},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+scene.add(new THREE.AmbientLight(0x303050,0.5));
+const dl=new THREE.DirectionalLight(0xeeeeff,0.6);dl.position.set(3,5,4);scene.add(dl);
+
+let nodeMeshes=[],edgeLines=[];
+
+function clearGraph(){
+  nodeMeshes.forEach(m=>{scene.remove(m);m.geometry.dispose();m.material.dispose();});
+  edgeLines.forEach(l=>{scene.remove(l);l.geometry.dispose();l.material.dispose();});
+  nodeMeshes=[];edgeLines=[];
+}
+
+function buildAndShow(){
+  clearGraph();
+  const{N,adj,deg}=buildCayley(S.group,S.n,S.nGen);
+  
+  if(N>300){
+    $('rd-n').textContent=N+' (too large)';
+    return;
+  }
+  
+  const{vals,vecs}=laplacianSpectrum(N,adj,deg);
+  
+  // Layout: spectral embedding using eigenvectors 1,2,3
+  const positions=new Float64Array(N*3);
+  const scale=2.5;
+  
+  if(vecs.length>=4){
+    for(let i=0;i<N;i++){
+      positions[i*3]  =vecs[1][i]*scale;
+      positions[i*3+1]=vecs[2][i]*scale;
+      positions[i*3+2]=vecs.length>3?vecs[3][i]*scale:0;
+    }
+  }else{
+    // Circular layout fallback
+    for(let i=0;i<N;i++){
+      const a=2*PI*i/N;
+      positions[i*3]=Math.cos(a)*scale;
+      positions[i*3+1]=Math.sin(a)*scale;
+      positions[i*3+2]=0;
+    }
+  }
+  
+  // Deformation by selected eigenvector
+  if(S.deform&&vecs.length>S.eigIdx){
+    const ev=vecs[S.eigIdx];
+    const maxEv=Math.max(...ev.map(Math.abs))||1;
+    for(let i=0;i<N;i++){
+      const def=ev[i]/maxEv*0.5;
+      positions[i*3]  *=(1+def);
+      positions[i*3+1]*=(1+def);
+      positions[i*3+2]+=def*scale;
+    }
+  }
+  
+  // Eigenvector coloring
+  let colorData=null;
+  if(S.showColor&&vecs.length>S.eigIdx){
+    const ev=vecs[S.eigIdx];
+    const maxEv=Math.max(...ev.map(Math.abs))||1;
+    colorData=ev.map(v=>v/maxEv);
+  }
+  
+  // Create nodes
+  const nodeGeo=new THREE.SphereGeometry(0.04+1.5/Math.sqrt(N),6,6);
+  for(let i=0;i<N;i++){
+    let col;
+    if(colorData){
+      const v=colorData[i];
+      if(v>0) col=new THREE.Color().setHSL(0.58,0.7,0.3+v*0.4);
+      else col=new THREE.Color().setHSL(0.08,0.7,0.3+(-v)*0.4);
+    }else{
+      col=new THREE.Color().setHSL(0.58,0.5,0.4);
+    }
+    const mat=new THREE.MeshPhongMaterial({color:col,transparent:true,opacity:0.9});
+    const mesh=new THREE.Mesh(nodeGeo,mat);
+    mesh.position.set(positions[i*3],positions[i*3+1],positions[i*3+2]);
+    scene.add(mesh);
+    nodeMeshes.push(mesh);
+  }
+  
+  // Create edges
+  if(S.showEdges){
+    for(let i=0;i<N;i++){
+      for(let j=i+1;j<N;j++){
+        if(!adj[i*N+j])continue;
+        const pts=new Float32Array([
+          positions[i*3],positions[i*3+1],positions[i*3+2],
+          positions[j*3],positions[j*3+1],positions[j*3+2]
+        ]);
+        const eg=new THREE.BufferGeometry();
+        eg.setAttribute('position',new THREE.BufferAttribute(pts,3));
+        const el=new THREE.Line(eg,new THREE.LineBasicMaterial({color:0x203050,transparent:true,opacity:0.15}));
+        scene.add(el);
+        edgeLines.push(el);
+      }
+    }
+  }
+  
+  // Spectrum
+  const d=deg[0]; // assume regular
+  const ramanujan=2*Math.sqrt(d-1);
+  const gap=vals.length>1?vals[1]:0;
+  const isRam=vals.every((v,i)=>i===0||i===N-1||Math.abs(d-v)<=ramanujan+0.01);
+  
+  // Update diagnostics
+  $('rd-n').textContent=N;
+  $('rd-gen').textContent=S.nGen;
+  $('rd-deg').textContent=d.toFixed(0);
+  $('rd-gap').textContent=gap.toFixed(4);
+  $('rd-lmax').textContent=vals[vals.length-1].toFixed(4);
+  $('rd-ram').textContent=ramanujan.toFixed(4);
+  $('rd-isram').innerHTML=isRam?'<span class="good">SÍ ✓</span>':'<span class="bad">NO ✗</span>';
+  $('rd-eig').textContent='v₍'+S.eigIdx+'₎';
+  $('rd-eigval').textContent=vals.length>S.eigIdx?vals[S.eigIdx].toFixed(4):'—';
+  
+  // Draw spectrum
+  drawSpectrum(vals,d,ramanujan,S.eigIdx);
+}
+
+function drawSpectrum(vals,d,ramBound,eigIdx){
+  const sc=$('sc');
+  const W=sc.width=sc.offsetWidth*(devicePixelRatio||1);
+  const H=sc.height=sc.offsetHeight*(devicePixelRatio||1);
+  const ctx=sc.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  
+  const pad=8*devicePixelRatio;
+  const pw=W-2*pad,ph=H-2*pad;
+  
+  const vmin=Math.min(...vals)-0.5;
+  const vmax=Math.max(...vals)+0.5;
+  const range=vmax-vmin||1;
+  
+  // Background
+  ctx.globalAlpha=0.03;ctx.fillStyle='#5090c0';ctx.fillRect(pad,pad,pw,ph);
+  
+  // Zero line
+  const x0=pad+(-vmin/range)*pw;
+  ctx.globalAlpha=0.1;ctx.strokeStyle='#ffffff';ctx.lineWidth=devicePixelRatio;
+  ctx.beginPath();ctx.moveTo(x0,pad);ctx.lineTo(x0,pad+ph);ctx.stroke();
+  
+  // Ramanujan bounds
+  if(S.showRam){
+    const xl=pad+((d-ramBound-vmin)/range)*pw;
+    const xr=pad+((d+ramBound-vmin)/range)*pw;
+    ctx.globalAlpha=0.08;ctx.fillStyle='#c05040';
+    ctx.fillRect(0,pad,xl,ph);
+    ctx.fillRect(xr,pad,W-xr,ph);
+    
+    ctx.globalAlpha=0.4;ctx.strokeStyle='#c05040';ctx.lineWidth=devicePixelRatio;
+    ctx.setLineDash([3*devicePixelRatio,3*devicePixelRatio]);
+    ctx.beginPath();ctx.moveTo(xl,pad);ctx.lineTo(xl,pad+ph);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xr,pad);ctx.lineTo(xr,pad+ph);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  
+  // Eigenvalue bars
+  const barH=Math.min(ph*0.5,8*devicePixelRatio);
+  for(let i=0;i<vals.length;i++){
+    const x=pad+((vals[i]-vmin)/range)*pw;
+    const isSelected=i===eigIdx;
+    ctx.globalAlpha=isSelected?0.9:0.5;
+    ctx.fillStyle=isSelected?'#c09050':'#4090c0';
+    ctx.fillRect(x-devicePixelRatio*0.5,pad+ph/2-barH/2,devicePixelRatio,barH);
+    
+    if(isSelected){
+      ctx.globalAlpha=0.15;ctx.fillStyle='#c09050';
+      ctx.fillRect(x-3*devicePixelRatio,pad,6*devicePixelRatio,ph);
+    }
+  }
+  
+  // Labels
+  ctx.globalAlpha=0.3;ctx.font=`${5*devicePixelRatio}px 'IBM Plex Mono'`;ctx.fillStyle='#80a0c0';
+  ctx.fillText(`λ₁=${vals.length>1?vals[1].toFixed(3):'?'}`,pad,pad+8*devicePixelRatio);
+  ctx.fillText(`Ramanujan: |λ−d|≤${ramBound.toFixed(2)}`,W-70*devicePixelRatio,pad+8*devicePixelRatio);
+  ctx.fillText('Espectro del Laplaciano',pw/2-20*devicePixelRatio,pad+ph-2*devicePixelRatio);
+  ctx.globalAlpha=1;
+}
+
+// ── UI ──
+$('sel-group').addEventListener('change',()=>{S.group=$('sel-group').value;buildAndShow();});
+$('s-n').addEventListener('input',()=>{S.n=parseInt($('s-n').value);$('v-n').textContent=S.n;buildAndShow();});
+$('s-gen').addEventListener('input',()=>{S.nGen=parseInt($('s-gen').value);$('v-gen').textContent=S.nGen;buildAndShow();});
+$('s-eig').addEventListener('input',()=>{S.eigIdx=parseInt($('s-eig').value);$('v-eig').textContent=S.eigIdx;buildAndShow();});
+
+function tog(id,p){$(id).addEventListener('click',()=>{S[p]=!S[p];$(id).classList.toggle('on',S[p]);buildAndShow();});}
+tog('b-edges','showEdges');tog('b-color','showColor');tog('b-deform','deform');tog('b-ramanujan','showRam');
+
+function animate(){
+  requestAnimationFrame(animate);
+  // Gentle pulse on nodes
+  const t=performance.now()*0.001;
+  nodeMeshes.forEach((m,i)=>{
+    const s=1+0.03*Math.sin(t*2+i*0.3);
+    m.scale.set(s,s,s);
+  });
+  O.update();
+  ren.render(scene,cam);
+}
+
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+
+buildAndShow();
+animate();
+})();
+</script>
+</body>
+</html>

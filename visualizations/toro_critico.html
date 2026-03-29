@@ -1,0 +1,662 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Línea Crítica sobre 𝕋³₍₂,₃,₅₎</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #e0dcd4;
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    cursor: grab;
+  }
+  body:active { cursor: grabbing; }
+
+  canvas { display: block; }
+
+  #title-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 14px 24px 10px;
+    background: linear-gradient(180deg, rgba(10,10,15,0.92) 0%, rgba(10,10,15,0) 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+  #title-bar h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: clamp(14px, 2.4vw, 22px);
+    letter-spacing: 0.02em;
+    color: #f0ecdf;
+    line-height: 1.2;
+  }
+  #title-bar .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(8px, 1.1vw, 10.5px);
+    font-weight: 300;
+    letter-spacing: 0.28em;
+    color: #c287e0;
+    margin-top: 3px;
+    text-transform: uppercase;
+  }
+
+  /* Control panel */
+  #panel {
+    position: fixed;
+    top: 80px; right: 16px;
+    width: clamp(220px, 22vw, 290px);
+    background: rgba(14,12,20,0.72);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgba(194,135,224,0.15);
+    border-radius: 10px;
+    padding: 16px 18px 14px;
+    z-index: 20;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(194,135,224,0.3) transparent;
+  }
+  #panel::-webkit-scrollbar { width: 4px; }
+  #panel::-webkit-scrollbar-thumb { background: rgba(194,135,224,0.3); border-radius: 2px; }
+
+  .ctrl-group {
+    margin-bottom: 10px;
+  }
+  .ctrl-group label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    color: #a098b0;
+    margin-bottom: 4px;
+  }
+  .ctrl-group label .val {
+    color: #d4b8e8;
+    font-weight: 500;
+    font-size: 10.5px;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(194,135,224,0.18);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #c287e0;
+    border: 2px solid #1a1424;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #c287e0;
+    border: 2px solid #1a1424;
+    cursor: pointer;
+  }
+
+  .toggle-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .toggle-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    padding: 4px 9px;
+    border-radius: 4px;
+    border: 1px solid rgba(194,135,224,0.25);
+    background: rgba(194,135,224,0.06);
+    color: #a098b0;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .toggle-btn.active {
+    background: rgba(194,135,224,0.22);
+    color: #e0c8f0;
+    border-color: rgba(194,135,224,0.5);
+  }
+  .toggle-btn:hover { border-color: rgba(194,135,224,0.45); }
+
+  .sweep-row {
+    display: flex; gap: 6px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .sweep-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(194,135,224,0.3);
+    background: rgba(194,135,224,0.1);
+    color: #d4b8e8;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sweep-btn:hover { background: rgba(194,135,224,0.25); }
+  .sweep-btn.playing { background: rgba(180,100,220,0.35); border-color: rgba(194,135,224,0.6); }
+
+  .divider {
+    height: 1px;
+    background: rgba(194,135,224,0.1);
+    margin: 10px 0;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #c8b8d8;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Legend panel */
+  #legend {
+    position: fixed;
+    bottom: 16px; left: 16px;
+    width: clamp(240px, 26vw, 340px);
+    background: rgba(14,12,20,0.68);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(194,135,224,0.12);
+    border-radius: 10px;
+    padding: 14px 16px 12px;
+    z-index: 20;
+    font-size: 10px;
+    line-height: 1.7;
+    color: #908898;
+    max-height: 40vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(194,135,224,0.2) transparent;
+  }
+  #legend::-webkit-scrollbar { width: 3px; }
+  #legend::-webkit-scrollbar-thumb { background: rgba(194,135,224,0.2); border-radius: 2px; }
+
+  #legend .eq {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: #c8b0d8;
+    font-size: 12px;
+  }
+  #legend .note {
+    color: #706878;
+    font-size: 9px;
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* Info readout */
+  #readout {
+    position: fixed;
+    bottom: 16px; right: 16px;
+    font-size: 9px;
+    color: #605868;
+    z-index: 10;
+    text-align: right;
+    line-height: 1.6;
+    pointer-events: none;
+  }
+
+  @media (max-width: 700px) {
+    #panel { top: auto; bottom: 10px; right: 10px; left: 10px; width: auto; max-height: 45vh; }
+    #legend { display: none; }
+    #title-bar { padding: 10px 14px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="title-bar">
+  <h1>Proyección ℝ⁴ → ℝ³ · Línea Crítica sobre 𝕋³<sub style="font-size:0.65em">₍₂,₃,₅₎</sub></h1>
+  <div class="subtitle">Enrollamiento irracional · σ&nbsp;=&nbsp;½ · Parametrización de Clifford</div>
+</div>
+
+<div id="panel">
+  <div class="section-title">Parámetros</div>
+
+  <div class="ctrl-group">
+    <label>t_max <span class="val" id="v-tmax">200</span></label>
+    <input type="range" id="s-tmax" min="20" max="600" value="200" step="1">
+  </div>
+  <div class="ctrl-group">
+    <label>R toroidal <span class="val" id="v-R">1.00</span></label>
+    <input type="range" id="s-R" min="0.3" max="3.0" value="1.0" step="0.01">
+  </div>
+  <div class="ctrl-group">
+    <label>d estereográfica <span class="val" id="v-dstereo">1.50</span></label>
+    <input type="range" id="s-dstereo" min="1.0" max="3.0" value="1.5" step="0.01">
+  </div>
+  <div class="ctrl-group">
+    <label>Puntos <span class="val" id="v-pts">10000</span></label>
+    <input type="range" id="s-pts" min="2000" max="30000" value="10000" step="500">
+  </div>
+  <div class="ctrl-group">
+    <label>σ (línea) <span class="val" id="v-sigma">0.50</span></label>
+    <input type="range" id="s-sigma" min="0.10" max="0.90" value="0.50" step="0.01">
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Visualización</div>
+
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="btn-autorot">Autorotación</button>
+    <button class="toggle-btn" id="btn-axes">Ejes</button>
+    <button class="toggle-btn active" id="btn-glow">Glow</button>
+    <button class="toggle-btn" id="btn-velocity">Color vel.</button>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Barrido temporal</div>
+
+  <div class="sweep-row">
+    <button class="sweep-btn" id="btn-sweep">▶ Play</button>
+    <button class="sweep-btn" id="btn-reset-sweep">Reset</button>
+  </div>
+  <div class="ctrl-group">
+    <label>Velocidad barrido <span class="val" id="v-speed">1.0</span></label>
+    <input type="range" id="s-speed" min="0.1" max="5.0" value="1.0" step="0.1">
+  </div>
+</div>
+
+<div id="legend">
+  <div class="eq">ω<sub>p</sub> = ln p &nbsp;&nbsp; r<sub>p</sub> = p<sup>−σ</sup> &nbsp;&nbsp; z<sub>p</sub>(t) = r<sub>p</sub> · e<sup>−iω<sub>p</sub>t</sup></div>
+  <div style="margin-top:8px; color:#908898;">
+    Clifford modificado: acoplamiento multiplicativo<br>
+    <span class="eq">X = (R + x₁)·x₂ &nbsp; Y = (R + x₁)·y₂</span><br>
+    <span class="eq">Z = (R + x₃)·x₁ &nbsp; W = (R + x₃)·y₁</span><br>
+    Estereográfica: <span class="eq">d = d₀ − W</span>
+  </div>
+  <div class="note">
+    La independencia de {ln 2, ln 3, ln 5} sobre ℚ garantiza densidad en 𝕋³ (equidistribución de Weyl). Los lóbulos visibles corresponden a convergentes de bajo orden: ln 3/ln 2 ≈ 1.585 → 3/2, ln 5/ln 3 ≈ 1.465 → 3/2. La amplitud r<sub>p</sub> = p<sup>−½</sup> viene de σ = ½; para σ ≠ ½ la geometría se deforma — la preimagen geométrica de RH.
+  </div>
+</div>
+
+<div id="readout"></div>
+
+<script>
+(function() {
+  // ── State ──
+  const state = {
+    tmax: 200,
+    R: 1.0,
+    dstereo: 1.5,
+    numPoints: 10000,
+    sigma: 0.5,
+    autoRotate: true,
+    showAxes: false,
+    showGlow: true,
+    velocityColor: false,
+    sweepPlaying: false,
+    sweepT: 0,
+    sweepSpeed: 1.0,
+  };
+
+  const primes = [2, 3, 5];
+  const lnP = primes.map(p => Math.log(p));
+
+  // ── Three.js setup ──
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0f);
+  scene.fog = new THREE.FogExp2(0x0a0a0f, 0.04);
+
+  const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(3.2, 2.0, 4.5);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+
+  // ── Orbit controls (minimal inline) ──
+  const orbit = {
+    target: new THREE.Vector3(0, 0, 0),
+    spherical: new THREE.Spherical(6.0, Math.PI * 0.42, Math.PI * 0.25),
+    sphericalDelta: new THREE.Spherical(),
+    scale: 1,
+    panOffset: new THREE.Vector3(),
+    isDragging: false,
+    isPanning: false,
+    pointerStart: { x: 0, y: 0 },
+    rotateSpeed: 0.005,
+    panSpeed: 0.008,
+    zoomSpeed: 0.1,
+    dampingFactor: 0.08,
+    autoRotateSpeed: 0.003,
+
+    update() {
+      if (state.autoRotate && !this.isDragging) {
+        this.sphericalDelta.theta -= this.autoRotateSpeed;
+      }
+      this.spherical.theta += this.sphericalDelta.theta * (1 - this.dampingFactor);
+      this.spherical.phi += this.sphericalDelta.phi * (1 - this.dampingFactor);
+      this.spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, this.spherical.phi));
+      this.spherical.radius *= this.scale;
+      this.spherical.radius = Math.max(1.5, Math.min(25, this.spherical.radius));
+      this.scale = 1;
+      this.target.add(this.panOffset);
+      this.panOffset.multiplyScalar(1 - this.dampingFactor);
+      this.sphericalDelta.theta *= (1 - this.dampingFactor);
+      this.sphericalDelta.phi *= (1 - this.dampingFactor);
+
+      const pos = new THREE.Vector3().setFromSpherical(this.spherical).add(this.target);
+      camera.position.copy(pos);
+      camera.lookAt(this.target);
+    }
+  };
+
+  // Pointer events
+  const el = renderer.domElement;
+  let lastTouchDist = 0;
+
+  el.addEventListener('pointerdown', e => {
+    if (e.button === 0) { orbit.isDragging = true; orbit.isPanning = e.shiftKey; }
+    else if (e.button === 2) { orbit.isDragging = true; orbit.isPanning = true; }
+    orbit.pointerStart.x = e.clientX;
+    orbit.pointerStart.y = e.clientY;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!orbit.isDragging) return;
+    const dx = e.clientX - orbit.pointerStart.x;
+    const dy = e.clientY - orbit.pointerStart.y;
+    orbit.pointerStart.x = e.clientX;
+    orbit.pointerStart.y = e.clientY;
+    if (orbit.isPanning) {
+      const panX = -dx * orbit.panSpeed * orbit.spherical.radius * 0.01;
+      const panY = dy * orbit.panSpeed * orbit.spherical.radius * 0.01;
+      const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+      const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+      orbit.panOffset.add(right.multiplyScalar(panX)).add(up.multiplyScalar(panY));
+    } else {
+      orbit.sphericalDelta.theta -= dx * orbit.rotateSpeed;
+      orbit.sphericalDelta.phi -= dy * orbit.rotateSpeed;
+    }
+  });
+  el.addEventListener('pointerup', () => { orbit.isDragging = false; orbit.isPanning = false; });
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    orbit.scale *= e.deltaY > 0 ? (1 + orbit.zoomSpeed) : (1 - orbit.zoomSpeed);
+  }, { passive: false });
+  el.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Touch zoom
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+    }
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (lastTouchDist > 0) {
+        orbit.scale *= lastTouchDist / dist;
+      }
+      lastTouchDist = dist;
+    }
+  }, { passive: true });
+
+  // ── Curve computation ──
+  function computeCurve(tmax, numPoints, R, dstereo, sigma) {
+    const positions = new Float32Array(numPoints * 3);
+    const colors = new Float32Array(numPoints * 3);
+    const dt = tmax / numPoints;
+
+    const rP = primes.map(p => Math.pow(p, -sigma));
+    const color = new THREE.Color();
+
+    let prevX = 0, prevY = 0, prevZ = 0;
+
+    for (let i = 0; i < numPoints; i++) {
+      const t = i * dt;
+
+      // z_p(t) components
+      const x1 = rP[0] * Math.cos(-lnP[0] * t);
+      const y1 = rP[0] * Math.sin(-lnP[0] * t);
+      const x2 = rP[1] * Math.cos(-lnP[1] * t);
+      const y2 = rP[1] * Math.sin(-lnP[1] * t);
+      const x3 = rP[2] * Math.cos(-lnP[2] * t);
+      const y3 = rP[2] * Math.sin(-lnP[2] * t);
+
+      // Clifford modified: multiplicative coupling
+      const X4 = (R + x1) * x2;
+      const Y4 = (R + x1) * y2;
+      const Z4 = (R + x3) * x1;
+      const W4 = (R + x3) * y1;
+
+      // Stereographic projection
+      const d = dstereo - W4;
+      const X3 = X4 / d;
+      const Y3 = Y4 / d;
+      const Z3 = Z4 / d;
+
+      positions[i * 3]     = X3;
+      positions[i * 3 + 1] = Y3;
+      positions[i * 3 + 2] = Z3;
+
+      // Color: hue shift with t, or velocity
+      if (state.velocityColor && i > 0) {
+        const dx = X3 - prevX, dy = Y3 - prevY, dz = Z3 - prevZ;
+        const speed = Math.sqrt(dx*dx + dy*dy + dz*dz) / dt;
+        const normSpeed = Math.min(speed / 2.0, 1.0);
+        // Slow = deep magenta, fast = cyan
+        color.setHSL(0.83 - normSpeed * 0.5, 0.85, 0.35 + normSpeed * 0.35);
+      } else {
+        const hue = 0.82 + (t / tmax) * 0.12;
+        color.setHSL(hue % 1.0, 0.72, 0.55);
+      }
+
+      colors[i * 3]     = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+
+      prevX = X3; prevY = Y3; prevZ = Z3;
+    }
+    return { positions, colors };
+  }
+
+  // ── Line objects ──
+  let lineGeom = new THREE.BufferGeometry();
+  let glowGeom = new THREE.BufferGeometry();
+
+  const lineMat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.92,
+    linewidth: 1,
+  });
+  const glowMat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.12,
+    linewidth: 1,
+  });
+
+  let line = new THREE.Line(lineGeom, lineMat);
+  let glowLine = new THREE.Line(glowGeom, glowMat);
+  glowLine.scale.set(1.02, 1.02, 1.02);
+  scene.add(line);
+  scene.add(glowLine);
+
+  // Axes helper
+  const axesHelper = new THREE.AxesHelper(2.5);
+  axesHelper.visible = false;
+  scene.add(axesHelper);
+
+  // Ambient structure: faint grid sphere
+  const gridSphere = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(4.5, 1),
+    new THREE.MeshBasicMaterial({ color: 0x1a1428, wireframe: true, transparent: true, opacity: 0.06 })
+  );
+  scene.add(gridSphere);
+
+  // ── Rebuild curve ──
+  function rebuildCurve() {
+    const effectiveTmax = state.sweepPlaying ? state.sweepT : state.tmax;
+    const effectivePoints = state.sweepPlaying
+      ? Math.max(500, Math.round(state.numPoints * (state.sweepT / state.tmax)))
+      : state.numPoints;
+
+    const { positions, colors } = computeCurve(
+      effectiveTmax, effectivePoints, state.R, state.dstereo, state.sigma
+    );
+
+    lineGeom.dispose();
+    glowGeom.dispose();
+    lineGeom = new THREE.BufferGeometry();
+    lineGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    lineGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    line.geometry = lineGeom;
+
+    if (state.showGlow) {
+      glowGeom = new THREE.BufferGeometry();
+      glowGeom.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3));
+      glowGeom.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3));
+      glowLine.geometry = glowGeom;
+      glowLine.visible = true;
+    } else {
+      glowLine.visible = false;
+    }
+  }
+
+  // ── UI wiring ──
+  const $ = id => document.getElementById(id);
+
+  function wireSlider(sliderId, valId, prop, fmt, rebuild = true) {
+    const s = $(sliderId);
+    const v = $(valId);
+    s.addEventListener('input', () => {
+      state[prop] = parseFloat(s.value);
+      v.textContent = fmt(state[prop]);
+      if (rebuild) rebuildCurve();
+    });
+  }
+
+  wireSlider('s-tmax', 'v-tmax', 'tmax', v => v.toFixed(0));
+  wireSlider('s-R', 'v-R', 'R', v => v.toFixed(2));
+  wireSlider('s-dstereo', 'v-dstereo', 'dstereo', v => v.toFixed(2));
+  wireSlider('s-pts', 'v-pts', 'numPoints', v => v.toFixed(0));
+  wireSlider('s-sigma', 'v-sigma', 'sigma', v => v.toFixed(2));
+  wireSlider('s-speed', 'v-speed', 'sweepSpeed', v => v.toFixed(1), false);
+
+  function toggleBtn(id, prop) {
+    const btn = $(id);
+    btn.addEventListener('click', () => {
+      state[prop] = !state[prop];
+      btn.classList.toggle('active', state[prop]);
+      if (prop === 'showAxes') axesHelper.visible = state.showAxes;
+      if (prop === 'showGlow' || prop === 'velocityColor') rebuildCurve();
+    });
+  }
+
+  toggleBtn('btn-autorot', 'autoRotate');
+  toggleBtn('btn-axes', 'showAxes');
+  toggleBtn('btn-glow', 'showGlow');
+  toggleBtn('btn-velocity', 'velocityColor');
+
+  // Sweep controls
+  const btnSweep = $('btn-sweep');
+  const btnResetSweep = $('btn-reset-sweep');
+
+  btnSweep.addEventListener('click', () => {
+    state.sweepPlaying = !state.sweepPlaying;
+    if (state.sweepPlaying) {
+      if (state.sweepT >= state.tmax) state.sweepT = 0;
+      btnSweep.textContent = '⏸ Pause';
+      btnSweep.classList.add('playing');
+    } else {
+      btnSweep.textContent = '▶ Play';
+      btnSweep.classList.remove('playing');
+      rebuildCurve();
+    }
+  });
+
+  btnResetSweep.addEventListener('click', () => {
+    state.sweepT = 0;
+    state.sweepPlaying = false;
+    btnSweep.textContent = '▶ Play';
+    btnSweep.classList.remove('playing');
+    rebuildCurve();
+  });
+
+  // ── Readout ──
+  const readoutEl = $('readout');
+  function updateReadout() {
+    const effT = state.sweepPlaying ? state.sweepT.toFixed(1) : state.tmax.toFixed(0);
+    readoutEl.innerHTML =
+      `σ = ${state.sigma.toFixed(2)} &nbsp;|&nbsp; t ∈ [0, ${effT}]<br>` +
+      `r₂ = ${Math.pow(2, -state.sigma).toFixed(4)} &nbsp; r₃ = ${Math.pow(3, -state.sigma).toFixed(4)} &nbsp; r₅ = ${Math.pow(5, -state.sigma).toFixed(4)}<br>` +
+      `ω₂ = ${lnP[0].toFixed(4)} &nbsp; ω₃ = ${lnP[1].toFixed(4)} &nbsp; ω₅ = ${lnP[2].toFixed(4)}`;
+  }
+
+  // ── Animation loop ──
+  let lastTime = performance.now();
+
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const delta = (now - lastTime) * 0.001;
+    lastTime = now;
+
+    // Sweep mode
+    if (state.sweepPlaying) {
+      state.sweepT += delta * state.sweepSpeed * 12;
+      if (state.sweepT >= state.tmax) {
+        state.sweepT = state.tmax;
+        state.sweepPlaying = false;
+        btnSweep.textContent = '▶ Play';
+        btnSweep.classList.remove('playing');
+      }
+      rebuildCurve();
+    }
+
+    orbit.update();
+    updateReadout();
+    renderer.render(scene, camera);
+  }
+
+  // ── Resize ──
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ── Init ──
+  rebuildCurve();
+  animate(performance.now());
+})();
+</script>
+</body>
+</html>

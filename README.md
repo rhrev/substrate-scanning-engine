@@ -1,0 +1,72 @@
+# Serie I · Substrate Scanning Engine
+## 16 Domains, 1 Architecture, 29 Features, 13 Engines
+
+Ricardo Hernández Reveles — ORCID: 0009-0001-1993-1471 · March 2026
+
+---
+
+### The Fundamental Equation
+
+    p⁻ˢ = p⁻σ · e⁻ⁱ ˡⁿ⁽ᵖ⁾ · ᵗ
+
+This is a fact, not a choice. p⁻σ is the amplitude. e⁻ⁱωᵗ is the phase.
+The zeros are the values of t where all phases conspire.
+f(b) organises the amplitude. cos(ω) organises the phase.
+Canal A is orthogonal to both.
+
+### The Decomposition
+
+    θ*(k, γ) = f(b) · [A + B·cos(ln(p)·γ) + C·sin(ln(p)·γ)]
+
+Shared algebra does not imply shared information.
+
+---
+
+### On Democratisation
+
+The engine lowers the barrier of access: anyone with Python and
+a browser can explore ζ, diagnose a turbine, or screen a material.
+
+What it does not lower is the barrier of judgement.
+
+**Democratising scepticism is worth more than democratising computation.**
+
+---
+
+### Engines (all verified, all standalone)
+
+| # | Domain | Engine | Throughput | Features |
+|---|--------|--------|-----------|----------|
+| 1 | ζ(s), L(s,χ), L(s,E) | geometric_engine.py | 125/s | 29 |
+| 2 | S-parameters | sparam_engine.py | 1,709/s | 29 |
+| 3 | Motor diagnosis | motor_diagnosis.py | 1,132/s | 29 |
+| 4 | General graphs | graph_engine.py | 833/s | 29 |
+| 5 | AST / code analysis | ast_engine.py | 139/s | 44 (29+15) |
+| 6 | Physical cavities | cavity_engine.py | 20/s | 29 |
+| 7 | Phonon / materials | phonon_engine.py | 478/s | 29 |
+| 8 | Colorimetry | colorimetry_engine.py | 1,677/s | 29 |
+| 9 | 3D wavelet subbands | wavelet_3d_engine.py | 50/s | 29 |
+| 10 | Turbulence cascades | turbulence_engine.py | 476/s | 29 |
+| 11 | Image spectral / forensics | image_spectral_engine.py | 816/s | 29 |
+| 12 | Spectral pathfinding | pathfinding_engine.py | 22/s | 29 |
+| 13 | Elliptic curve crypto audit | crypto_curve_engine.py | 274/s | 29 |
+
+Constraint: linear operator + discrete spectrum.
+
+### Zenodo Deposit
+
+This repository corresponds to Zenodo record **10.5281/zenodo.19299719**.
+Cite as: Hernández Reveles, R. (2026). *Substrate Scanning Engine* (v2.0.0). Zenodo. https://doi.org/10.5281/zenodo.19299719
+
+### License
+
+Code: AGPL-3.0-or-later | Papers: CC-BY-4.0
+Dependencies: numpy (BSD-3-Clause), scipy (BSD-3-Clause), Three.js (MIT)
+
+### Attribution
+
+This work was developed with computational assistance from Claude (Anthropic).
+All results were independently verified by the author.
+All errors are the author's responsibility.
+
+*The spectrum is the spectrum.*

@@ -1,0 +1,68 @@
+name: CI — Engine Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run core engine
+        run: python pipelines/geometric_engine.py
+
+      - name: Verify 29 features — core engine
+        run: |
+          python -c "
+          import sys, numpy as np
+          sys.path.insert(0, 'pipelines')
+          from geometric_engine import GeometricEngine, RiemannZeta
+          ep = RiemannZeta()
+          engine = GeometricEngine(ep)
+          vec = engine.feature_vector(0.5, 14.134725, 6)
+          assert len(vec) == 29, f'Expected 29 features, got {len(vec)}'
+          assert all(np.isfinite(vec)), 'Non-finite features detected'
+          print(f'PASS: {len(vec)} features, all finite')
+          "
+
+      - name: Run standalone application engines
+        run: |
+          for engine in \
+            sparam_engine motor_diagnosis cavity_engine \
+            phonon_engine colorimetry_engine wavelet_3d_engine \
+            turbulence_engine image_spectral_engine crypto_curve_engine; do
+            echo "=== ${engine} ==="
+            python "applications/${engine}.py"
+          done
+
+      - name: Run engines with graph_engine dependency
+        run: |
+          cd applications
+          for engine in graph_engine ast_engine pathfinding_engine; do
+            echo "=== ${engine} ==="
+            python "${engine}.py"
+          done
+
+      - name: Run envelope pipelines
+        run: |
+          python pipelines/envelope_pipeline.py
+          python pipelines/envelope_v2.py

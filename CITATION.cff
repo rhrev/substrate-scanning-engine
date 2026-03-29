@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: >-
+  Substrate Scanning Engine: Geometric Parameter Generation
+  for L-functions and Spectral Systems
+message: >-
+  If you use this software, please cite it using the metadata
+  from this file.
+type: software
+authors:
+  - given-names: Ricardo
+    family-names: Hernández Reveles
+    orcid: 'https://orcid.org/0009-0001-1993-1471'
+    affiliation: 'Independent researcher, Guadalajara, México'
+version: 2.0.0
+date-released: '2026-03-28'
+license: AGPL-3.0-or-later
+repository-code: 'https://github.com/rhrev/substrate-scanning-engine'
+identifiers:
+  - type: doi
+    value: '10.5281/zenodo.19299719'
+    description: Zenodo deposit
+keywords:
+  - Riemann zeta function
+  - spectral features
+  - geometric machine learning
+  - Euler product
+  - L-functions
+  - Substrate Scanning
+  - computational phenomenology
+abstract: >-
+  A modular computational engine that extracts 29 deterministic
+  spectral features from any system with a linear operator and
+  discrete spectrum. Developed from the Riemann zeta function
+  and validated on 16 domains with 12 application engines,
+  3 pipelines, and 17 interactive visualizations.

@@ -1,0 +1,403 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paisaje de ζ · Potencial Electrostático de los Ceros</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#02020a;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:grab;}
+body:active{cursor:grabbing;}
+canvas#c{display:block;position:fixed;top:0;left:0;z-index:0;}
+
+#hud{position:fixed;top:0;left:0;right:0;padding:8px 14px 4px;background:linear-gradient(180deg,rgba(2,2,10,0.97),rgba(2,2,10,0));z-index:10;pointer-events:none;}
+#hud h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(11px,1.8vw,17px);color:#eef0f4;}
+#hud .sub{font-size:clamp(6px,0.75vw,8px);font-weight:300;letter-spacing:0.18em;color:#404858;text-transform:uppercase;margin-top:1px;}
+
+#ctrl{position:fixed;top:42px;left:0;right:0;padding:4px 14px;z-index:25;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(2,2,10,0.92);border-bottom:1px solid rgba(160,120,60,0.05);}
+.cg{display:flex;align-items:center;gap:3px;}
+.cg label{font-size:7px;color:#505860;white-space:nowrap;}
+.cg .v{font-size:9px;font-weight:500;min-width:24px;text-align:right;}
+.cg input[type="range"]{-webkit-appearance:none;height:3px;border-radius:2px;outline:none;cursor:pointer;width:clamp(50px,7vw,90px);}
+.cg input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;border:2px solid #080814;cursor:pointer;}
+.s1{background:rgba(100,180,160,0.12);}.s1::-webkit-slider-thumb{background:#60a898;}
+.s2{background:rgba(200,160,60,0.12);}.s2::-webkit-slider-thumb{background:#c0a040;}
+.btn{font-size:7px;padding:2px 6px;border-radius:3px;border:1px solid rgba(160,120,60,0.12);background:rgba(160,120,60,0.03);color:#807060;cursor:pointer;white-space:nowrap;}
+.btn:hover{background:rgba(160,120,60,0.08);}
+.btn.on{background:rgba(160,120,60,0.15);color:#b0a070;border-color:rgba(160,120,60,0.25);}
+
+#info{position:fixed;top:74px;left:8px;background:rgba(4,4,14,0.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(160,120,60,0.05);border-radius:7px;padding:7px 9px;z-index:20;font-size:7px;line-height:1.5;color:#506058;max-width:clamp(160px,16vw,210px);}
+.st{font-family:'Cormorant Garamond',serif;font-size:9px;font-weight:600;color:#908060;margin-bottom:2px;}
+.dv{height:1px;background:rgba(160,120,60,0.04);margin:4px 0;}
+.ceq{font-family:'Cormorant Garamond',serif;font-size:9px;font-style:italic;color:#a09878;margin:3px 0;}
+.note{font-size:6.5px;color:#404848;line-height:1.5;}
+
+#panel{position:fixed;top:74px;right:8px;background:rgba(4,4,14,0.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(160,120,60,0.05);border-radius:7px;padding:7px 9px;z-index:20;font-size:7px;width:clamp(150px,14vw,190px);}
+.ir{display:flex;justify-content:space-between;gap:3px;padding:1px 0;font-size:6.5px;}
+.ir .il{color:#405050;}.ir .iv{font-weight:500;}
+
+@media(max-width:700px){#info{display:none;}#panel{top:auto;bottom:8px;right:8px;}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <h1>Paisaje de ζ · ΔV = 2π Σ δ(s−ρ)</h1>
+  <div class="sub">Potencial electrostático · Cargas difusas en los ceros · Sillas de montar en σ = ½</div>
+</div>
+
+<div id="ctrl">
+  <div class="cg"><label>K</label><input type="range" id="s-K" class="s1" min="6" max="120" value="40" step="1"><span class="v" style="color:#60a898;" id="v-K">40</span></div>
+  <div class="cg"><label>t₀</label><input type="range" id="s-t0" class="s2" min="8" max="40" value="10" step="0.5"><span class="v" style="color:#c0a040;" id="v-t0">10</span></div>
+  <div class="cg"><label>t₁</label><input type="range" id="s-t1" class="s2" min="20" max="80" value="50" step="0.5"><span class="v" style="color:#c0a040;" id="v-t1">50</span></div>
+  <div class="cg"><label>escala V</label><input type="range" id="s-vsc" class="s2" min="0.05" max="1.0" value="0.25" step="0.01"><span class="v" style="color:#a09060;" id="v-vsc">0.25</span></div>
+  <button class="btn on" id="b-lap">ΔV color</button>
+  <button class="btn on" id="b-zeros">◆ Ceros</button>
+  <button class="btn on" id="b-geo">Geodésicas</button>
+  <button class="btn on" id="b-crit">σ=½</button>
+  <button class="btn on" id="b-wire">Wireframe</button>
+  <button class="btn" id="b-render">⟳</button>
+</div>
+
+<div id="info">
+  <div class="ceq">V(σ,t) = −log|−ζ'/ζ(s)|</div>
+  <div class="dv"></div>
+  <div class="st">Lectura visual</div>
+  <div class="note">
+    <span style="color:#e06060;">Pozos profundos</span> = ceros de ζ<br>
+    <span style="color:#60c0a0;">Mesetas</span> = regiones libres<br>
+    <span style="color:#e0c040;">Línea σ=½</span> = fondo del valle<br>
+    <span style="color:#ff8060;">Color rojo</span> = ΔV ≠ 0 (carga)<br>
+    <span style="color:#6080ff;">Color azul</span> = ΔV ≈ 0 (armónico)
+  </div>
+  <div class="dv"></div>
+  <div class="note">
+    La superficie ES el potencial.<br>
+    Las sillas de montar son los ceros.<br>
+    El campo se deduce — no se necesita.<br>
+    ΔV = 0 entre singularidades<br>
+    confirma la estructura electrostática.<br><br>
+    Las geodésicas descienden<br>
+    naturalmente a σ = ½.
+  </div>
+</div>
+
+<div id="panel">
+  <div class="st">Diagnóstico</div>
+  <div class="ir"><span class="il">Resolución</span><span class="iv" id="rd-res">—</span></div>
+  <div class="ir"><span class="il">V rango</span><span class="iv" id="rd-vr">—</span></div>
+  <div class="ir"><span class="il">ΔV mediana</span><span class="iv" id="rd-lap">—</span></div>
+  <div class="ir"><span class="il">Ceros visibles</span><span class="iv" style="color:#e0c040;" id="rd-zc">—</span></div>
+  <div class="ir"><span class="il">Geodésicas</span><span class="iv" style="color:#ff8060;" id="rd-gc">—</span></div>
+</div>
+
+<script>
+(function(){
+const PI=Math.PI;
+function sieve(n){const s=new Uint8Array(n+1);s[0]=s[1]=1;for(let i=2;i*i<=n;i++)if(!s[i])for(let j=i*i;j<=n;j+=i)s[j]=1;const p=[];for(let i=2;i<=n;i++)if(!s[i])p.push(i);return p;}
+const P=sieve(800).slice(0,122);
+const LN=new Float64Array(P.length);for(let i=0;i<P.length;i++)LN[i]=Math.log(P[i]);
+const ZEROS=[14.134725,21.022040,25.010858,30.424876,32.935062,37.586178,40.918719,43.327073,48.005151,49.773832,52.970321,56.446248,59.347044,60.831779,65.112544,67.079811,69.546402,72.067158,75.704691,77.144840];
+
+const sigMin=0.30,sigMax=1.10;
+const S={K:40,t0:10,t1:50,vScale:0.25,showLap:true,showZeros:true,showGeo:true,showCrit:true,wire:true};
+
+// Three.js
+const cv=document.getElementById('c');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x02020a);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,500);
+cam.position.set(0,8,12);cam.lookAt(0,0,0);
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+
+// Orbit
+const O={tgt:new THREE.Vector3(0,-0.5,0),sph:new THREE.Spherical(14,PI*0.32,PI*0.15),d:new THREE.Spherical(),sc:1,pan:new THREE.Vector3(),dr:false,pn:false,px:0,py:0,
+update(){if(!this.dr)this.d.theta-=0.0003;const f=0.07;this.sph.theta+=this.d.theta*(1-f);this.sph.phi+=this.d.phi*(1-f);this.sph.phi=Math.max(0.05,Math.min(PI-0.05,this.sph.phi));this.sph.radius*=this.sc;this.sph.radius=Math.max(2,Math.min(40,this.sph.radius));this.sc=1;this.tgt.add(this.pan);this.pan.multiplyScalar(1-f);this.d.theta*=(1-f);this.d.phi*=(1-f);cam.position.setFromSpherical(this.sph).add(this.tgt);cam.lookAt(this.tgt);}};
+cv.addEventListener('pointerdown',e=>{O.dr=true;O.pn=e.shiftKey||e.button===2;O.px=e.clientX;O.py=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{if(!O.dr)return;const dx=e.clientX-O.px,dy=e.clientY-O.py;O.px=e.clientX;O.py=e.clientY;if(O.pn){const r=new THREE.Vector3().setFromMatrixColumn(cam.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(cam.matrix,1);O.pan.add(r.multiplyScalar(-dx*O.sph.radius*0.002)).add(u.multiplyScalar(dy*O.sph.radius*0.002));}else{O.d.theta-=dx*0.004;O.d.phi-=dy*0.004;}});
+cv.addEventListener('pointerup',()=>{O.dr=false;});
+cv.addEventListener('wheel',e=>{e.preventDefault();O.sc*=e.deltaY>0?1.05:0.95;},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Compute V and ΔV
+function logDerivMag(sigma,t,K){
+  let re=0,im=0;
+  for(let k=0;k<K&&k<P.length;k++){
+    const ps=Math.pow(P[k],-sigma);
+    const th=-LN[k]*t;
+    const pr=ps*Math.cos(th),pi=ps*Math.sin(th);
+    const dr=1-pr,di=-pi;
+    const dd=dr*dr+di*di;
+    if(dd<1e-30)continue;
+    re+=LN[k]*(pr*dr+pi*di)/dd;
+    im+=LN[k]*(pi*dr-pr*di)/dd;
+  }
+  return Math.sqrt(re*re+im*im);
+}
+function Vfn(sigma,t,K){return -Math.log(logDerivMag(sigma,t,K)+1e-15);}
+
+let surfaceMesh=null,wireframeMesh=null,critLine=null;
+let geoLines=[],zeroMarkers=[];
+
+function clearScene(){
+  if(surfaceMesh){scene.remove(surfaceMesh);surfaceMesh.geometry.dispose();surfaceMesh.material.dispose();}
+  if(wireframeMesh){scene.remove(wireframeMesh);wireframeMesh.geometry.dispose();wireframeMesh.material.dispose();}
+  if(critLine){scene.remove(critLine);critLine.geometry.dispose();}
+  geoLines.forEach(l=>{scene.remove(l);l.geometry.dispose();});geoLines=[];
+  zeroMarkers.forEach(m=>{scene.remove(m);});zeroMarkers=[];
+}
+
+function build(){
+  clearScene();
+  const K=S.K,t0=S.t0,t1=S.t1,vsc=S.vScale;
+  const Nt=Math.min(Math.floor(K>60?100:140),Math.floor((t1-t0)*4));
+  const Ns=Math.floor(Nt*0.4);
+
+  // Compute grid
+  const vGrid=new Float64Array(Nt*Ns);
+  const lapGrid=new Float64Array(Nt*Ns);
+  let vmin=Infinity,vmax=-Infinity;
+  const h=0.01;
+
+  for(let js=0;js<Ns;js++){
+    const sigma=sigMin+(js/(Ns-1))*(sigMax-sigMin);
+    for(let jt=0;jt<Nt;jt++){
+      const t=t0+(jt/(Nt-1))*(t1-t0);
+      const v=Vfn(sigma,t,K);
+      vGrid[js*Nt+jt]=v;
+      if(v<vmin)vmin=v;if(v>vmax)vmax=v;
+    }
+  }
+
+  // Laplacian
+  let lapMin=Infinity,lapMax=-Infinity;
+  for(let js=1;js<Ns-1;js++){
+    for(let jt=1;jt<Nt-1;jt++){
+      const vc=vGrid[js*Nt+jt];
+      const d2s=vGrid[(js+1)*Nt+jt]-2*vc+vGrid[(js-1)*Nt+jt];
+      const d2t=vGrid[js*Nt+jt+1]-2*vc+vGrid[js*Nt+jt-1];
+      const ds2=((sigMax-sigMin)/(Ns-1))**2;
+      const dt2=((t1-t0)/(Nt-1))**2;
+      const lap=d2s/ds2+d2t/dt2;
+      lapGrid[js*Nt+jt]=lap;
+      if(Math.abs(lap)<1000){if(lap<lapMin)lapMin=lap;if(lap>lapMax)lapMax=lap;}
+    }
+  }
+
+  // Build geometry
+  const geo=new THREE.BufferGeometry();
+  const vertices=new Float32Array(Nt*Ns*3);
+  const colors=new Float32Array(Nt*Ns*3);
+  const indices=[];
+
+  const tSpan=t1-t0,sSpan=sigMax-sigMin;
+  const xScale=10/tSpan, zScale=4/sSpan;
+  const vRange=vmax-vmin||1;
+
+  for(let js=0;js<Ns;js++){
+    const sigma=sigMin+(js/(Ns-1))*sSpan;
+    for(let jt=0;jt<Nt;jt++){
+      const t=t0+(jt/(Nt-1))*tSpan;
+      const idx=js*Nt+jt;
+      const v=vGrid[idx];
+
+      // x = t direction, y = height (V), z = σ direction
+      const x=(t-t0)*xScale - 5;
+      const y=Math.max(-3,Math.min(3,(v-vmin)/vRange*6-3))*vsc;
+      const z=(sigma-sigMin)*zScale - 2;
+      vertices[idx*3]=x;vertices[idx*3+1]=y;vertices[idx*3+2]=z;
+
+      // Color by Laplacian
+      if(S.showLap&&js>0&&js<Ns-1&&jt>0&&jt<Nt-1){
+        const lap=lapGrid[idx];
+        const lapAbs=Math.min(Math.abs(lap),Math.abs(lapMax)*0.5);
+        const lapNorm=lapAbs/(Math.abs(lapMax)*0.5+1e-10);
+        // Blue = harmonic (|ΔV|≈0), Red = charge (|ΔV|>0)
+        const r=Math.min(1,lapNorm*3);
+        const g=Math.min(1,(1-lapNorm)*0.4+0.1);
+        const b=Math.min(1,(1-lapNorm)*0.8+0.1);
+        colors[idx*3]=r;colors[idx*3+1]=g;colors[idx*3+2]=b;
+      }else{
+        // Height-based color fallback
+        const nv=(v-vmin)/vRange;
+        colors[idx*3]=0.1+nv*0.5;colors[idx*3+1]=0.15+nv*0.25;colors[idx*3+2]=0.3+nv*0.15;
+      }
+    }
+  }
+
+  // Triangulate
+  for(let js=0;js<Ns-1;js++){
+    for(let jt=0;jt<Nt-1;jt++){
+      const a=js*Nt+jt,b=a+1,c=(js+1)*Nt+jt,d=c+1;
+      indices.push(a,b,c,b,d,c);
+    }
+  }
+
+  geo.setAttribute('position',new THREE.BufferAttribute(vertices,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+
+  // Surface mesh
+  const mat=new THREE.MeshPhongMaterial({
+    vertexColors:true,transparent:true,opacity:0.85,
+    side:THREE.DoubleSide,shininess:30,flatShading:false,
+  });
+  surfaceMesh=new THREE.Mesh(geo,mat);
+  scene.add(surfaceMesh);
+
+  // Wireframe
+  if(S.wire){
+    const wmat=new THREE.MeshBasicMaterial({wireframe:true,color:0x303040,transparent:true,opacity:0.08});
+    wireframeMesh=new THREE.Mesh(geo.clone(),wmat);
+    scene.add(wireframeMesh);
+  }
+
+  // σ=½ line
+  if(S.showCrit){
+    const cpts=[];
+    const js05=Math.round((0.5-sigMin)/sSpan*(Ns-1));
+    for(let jt=0;jt<Nt;jt++){
+      const idx=js05*Nt+jt;
+      cpts.push(vertices[idx*3],vertices[idx*3+1]+0.02,vertices[idx*3+2]);
+    }
+    const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(cpts),3));
+    critLine=new THREE.Line(cg,new THREE.LineBasicMaterial({color:0xe0c040,transparent:true,opacity:0.7,linewidth:2}));
+    scene.add(critLine);
+  }
+
+  // Zero markers
+  if(S.showZeros){
+    let zc=0;
+    for(const z of ZEROS){
+      if(z<t0||z>t1)continue;zc++;
+      const jt=Math.round((z-t0)/tSpan*(Nt-1));
+      const js=Math.round((0.5-sigMin)/sSpan*(Ns-1));
+      const idx=js*Nt+jt;
+      const x=vertices[idx*3],y=vertices[idx*3+1],zz=vertices[idx*3+2];
+
+      // Glowing sphere at zero
+      const zm=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8),new THREE.MeshBasicMaterial({color:0xffe040,transparent:true,opacity:0.9}));
+      zm.position.set(x,y+0.05,zz);scene.add(zm);zeroMarkers.push(zm);
+
+      // Vertical line from zero down
+      const vlg=new THREE.BufferGeometry();vlg.setAttribute('position',new THREE.BufferAttribute(new Float32Array([x,y+0.05,zz,x,-3*vsc,zz]),3));
+      const vl=new THREE.Line(vlg,new THREE.LineBasicMaterial({color:0xe0c040,transparent:true,opacity:0.15}));
+      scene.add(vl);zeroMarkers.push(vl);
+
+      // Glow
+      const gl=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),new THREE.MeshBasicMaterial({color:0xe0c040,transparent:true,opacity:0.08}));
+      gl.position.set(x,y+0.05,zz);scene.add(gl);zeroMarkers.push(gl);
+    }
+    document.getElementById('rd-zc').textContent=zc;
+  }
+
+  // Geodesics (gradient descent on the surface)
+  if(S.showGeo){
+    const geoColors=['#ff5030','#ff8050','#ffa060','#60ffa0','#60c0ff','#c060ff'];
+    let gc=0;
+    // Launch from σ=0.9 at various t
+    const starts=[];
+    for(let t=t0+2;t<t1-2;t+=5)starts.push({sigma:0.95,t});
+    // Also from near zeros at σ=0.7
+    for(const z of ZEROS){if(z>t0+1&&z<t1-1)starts.push({sigma:0.75,t:z+0.8});}
+
+    for(const st of starts.slice(0,12)){
+      const path=[];
+      let sigma=st.sigma,t=st.t;
+      for(let i=0;i<500;i++){
+        path.push(sigma,t);
+        const ep=0.003;
+        const vc=Vfn(sigma,t,K);
+        const ds=(Vfn(sigma+ep,t,K)-Vfn(sigma-ep,t,K))/(2*ep);
+        const dt=(Vfn(sigma,t+ep,K)-Vfn(sigma,t-ep,K))/(2*ep);
+        const mag=Math.sqrt(ds*ds+dt*dt);
+        if(mag<1e-6)break;
+        const step=0.008;
+        sigma-=ds/mag*step;t-=dt/mag*step;
+        if(sigma<sigMin||sigma>sigMax||t<t0||t>t1)break;
+        if(i>30&&Math.abs(sigma-0.5)<0.015)break;
+      }
+      if(path.length>8){
+        const pts=[];
+        for(let i=0;i<path.length;i+=2){
+          const s=path[i],tt=path[i+1];
+          const x=(tt-t0)*xScale-5;
+          const v=Vfn(s,tt,K);
+          const y=Math.max(-3,Math.min(3,(v-vmin)/vRange*6-3))*vsc+0.03;
+          const z=(s-sigMin)*zScale-2;
+          pts.push(x,y,z);
+        }
+        const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pts),3));
+        const col=new THREE.Color(geoColors[gc%geoColors.length]);
+        const gl=new THREE.Line(gg,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.7}));
+        scene.add(gl);geoLines.push(gl);
+        // Glow
+        const gl2=new THREE.Line(gg.clone(),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.08,linewidth:3}));
+        scene.add(gl2);geoLines.push(gl2);
+        gc++;
+      }
+    }
+    document.getElementById('rd-gc').textContent=gc;
+  }
+
+  // Diagnostics
+  document.getElementById('rd-res').textContent=`${Nt}×${Ns}`;
+  document.getElementById('rd-vr').textContent=`[${vmin.toFixed(1)},${vmax.toFixed(1)}]`;
+  const lapVals=[];
+  for(let js=1;js<Ns-1;js++)for(let jt=1;jt<Nt-1;jt++){
+    const l=Math.abs(lapGrid[js*Nt+jt]);if(l<100)lapVals.push(l);
+  }
+  lapVals.sort((a,b)=>a-b);
+  const med=lapVals[Math.floor(lapVals.length/2)]||0;
+  document.getElementById('rd-lap').textContent=med.toFixed(4);
+}
+
+// Lights
+const amb=new THREE.AmbientLight(0x303040,0.6);scene.add(amb);
+const dir1=new THREE.DirectionalLight(0xffeedd,0.8);dir1.position.set(3,8,4);scene.add(dir1);
+const dir2=new THREE.DirectionalLight(0x8090c0,0.3);dir2.position.set(-4,4,-3);scene.add(dir2);
+const pt=new THREE.PointLight(0xe0c060,0.4,20);pt.position.set(0,4,0);scene.add(pt);
+
+// UI
+const $=id=>document.getElementById(id);
+$('s-K').addEventListener('input',()=>{S.K=parseInt($('s-K').value);$('v-K').textContent=S.K;});
+$('s-t0').addEventListener('input',()=>{S.t0=parseFloat($('s-t0').value);$('v-t0').textContent=S.t0.toFixed(0);});
+$('s-t1').addEventListener('input',()=>{S.t1=parseFloat($('s-t1').value);$('v-t1').textContent=S.t1.toFixed(0);});
+$('s-vsc').addEventListener('input',()=>{S.vScale=parseFloat($('s-vsc').value);$('v-vsc').textContent=S.vScale.toFixed(2);});
+
+function tog(id,p){$(id).addEventListener('click',()=>{S[p]=!S[p];$(id).classList.toggle('on',S[p]);});}
+tog('b-lap','showLap');tog('b-zeros','showZeros');tog('b-geo','showGeo');tog('b-crit','showCrit');tog('b-wire','wire');
+$('b-render').addEventListener('click',build);
+
+// Pulse zeros
+function pulse(t){
+  const p=0.5+0.5*Math.sin(t*2);
+  zeroMarkers.forEach((m,i)=>{
+    if(m.material&&m.material.opacity!==undefined){
+      if(i%3===2)m.material.opacity=0.04+0.08*p; // glow
+    }
+  });
+}
+
+let last=performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  pulse(now*0.001);
+  O.update();
+  ren.render(scene,cam);
+}
+
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+
+build();
+animate(performance.now());
+})();
+</script>
+</body>
+</html>

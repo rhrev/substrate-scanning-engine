@@ -1,0 +1,764 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tres Toros · Ceros de ζ · Línea Crítica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:#05050a;color:#dce0e8;
+    font-family:'IBM Plex Mono',monospace;
+    overflow:hidden;width:100vw;height:100vh;cursor:grab;
+  }
+  body:active{cursor:grabbing;}
+  canvas#main-canvas{display:block;position:fixed;top:0;left:0;z-index:0;}
+
+  #title-bar{
+    position:fixed;top:0;left:0;right:0;
+    padding:12px 20px 8px;
+    background:linear-gradient(180deg,rgba(5,5,10,0.96) 0%,rgba(5,5,10,0) 100%);
+    z-index:10;pointer-events:none;
+  }
+  #title-bar h1{
+    font-family:'Cormorant Garamond',serif;font-weight:600;
+    font-size:clamp(12px,2vw,19px);letter-spacing:0.02em;color:#eeeef4;
+  }
+  #title-bar .subtitle{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(7px,0.9vw,9.5px);font-weight:300;
+    letter-spacing:0.24em;color:#787888;margin-top:2px;text-transform:uppercase;
+  }
+
+  /* ── Mini return-distance plot ── */
+  #dist-plot{
+    position:fixed;bottom:52px;left:0;right:0;height:60px;
+    z-index:15;pointer-events:none;
+    background:linear-gradient(0deg,rgba(5,5,10,0.5) 0%,rgba(5,5,10,0) 100%);
+  }
+  #dist-plot canvas{width:100%;height:100%;}
+
+  /* ── T slider strip ── */
+  #t-strip{
+    position:fixed;bottom:0;left:0;right:0;
+    padding:8px 20px 12px;
+    background:rgba(5,5,10,0.94);
+    border-top:1px solid rgba(120,120,160,0.08);
+    z-index:30;display:flex;align-items:center;gap:12px;
+  }
+  #t-strip .t-label{font-size:10px;color:#9090a8;white-space:nowrap;min-width:90px;}
+  #t-strip .t-label .t-val{color:#d0d0e8;font-weight:500;font-size:11px;}
+  #t-strip input[type="range"]{
+    flex:1;-webkit-appearance:none;appearance:none;
+    height:4px;background:rgba(140,140,180,0.12);border-radius:2px;outline:none;cursor:pointer;
+  }
+  #t-strip input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:#a098c0;border:2px solid #0c0c16;cursor:pointer;
+  }
+  #t-strip input[type="range"]::-moz-range-thumb{
+    width:14px;height:14px;border-radius:50%;
+    background:#a098c0;border:2px solid #0c0c16;cursor:pointer;
+  }
+  .sweep-controls{display:flex;gap:5px;align-items:center;}
+  .sweep-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;
+    border-radius:4px;border:1px solid rgba(140,140,180,0.25);
+    background:rgba(140,140,180,0.06);color:#a0a0c0;cursor:pointer;transition:all 0.2s;
+  }
+  .sweep-btn:hover{background:rgba(140,140,180,0.16);}
+  .sweep-btn.playing{background:rgba(120,100,180,0.28);border-color:rgba(140,140,180,0.45);}
+
+  /* ── Side panel ── */
+  #panel{
+    position:fixed;top:66px;right:12px;
+    width:clamp(215px,20vw,270px);
+    background:rgba(8,8,16,0.74);
+    backdrop-filter:blur(20px) saturate(1.4);
+    -webkit-backdrop-filter:blur(20px) saturate(1.4);
+    border:1px solid rgba(140,140,180,0.1);border-radius:10px;
+    padding:12px 14px 10px;z-index:20;
+    max-height:calc(100vh - 140px);overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:rgba(140,140,180,0.18) transparent;
+  }
+  #panel::-webkit-scrollbar{width:3px;}
+  #panel::-webkit-scrollbar-thumb{background:rgba(140,140,180,0.18);border-radius:2px;}
+
+  .section-title{
+    font-family:'Cormorant Garamond',serif;font-size:10.5px;font-weight:600;
+    color:#9898b0;margin-bottom:6px;letter-spacing:0.04em;
+  }
+  .ctrl-group{margin-bottom:8px;}
+  .ctrl-group label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:9px;font-weight:400;letter-spacing:0.05em;color:#707088;margin-bottom:3px;
+  }
+  .ctrl-group label .val{color:#a8a8c8;font-weight:500;font-size:9.5px;min-width:34px;text-align:right;}
+
+  #panel input[type="range"]{
+    -webkit-appearance:none;appearance:none;width:100%;height:2.5px;
+    background:rgba(140,140,180,0.12);border-radius:2px;outline:none;cursor:pointer;
+  }
+  #panel input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+    background:#8888a8;border:2px solid #0c0c16;cursor:pointer;
+  }
+  #panel input[type="range"]::-moz-range-thumb{
+    width:10px;height:10px;border-radius:50%;
+    background:#8888a8;border:2px solid #0c0c16;cursor:pointer;
+  }
+
+  .divider{height:1px;background:rgba(140,140,180,0.06);margin:8px 0;}
+
+  .torus-toggles{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
+  .torus-toggle{
+    display:flex;align-items:center;gap:7px;
+    font-size:9px;letter-spacing:0.04em;color:#707080;
+    cursor:pointer;padding:3px 7px;border-radius:4px;
+    border:1px solid transparent;transition:all 0.2s;user-select:none;
+  }
+  .torus-toggle:hover{border-color:rgba(140,140,180,0.12);}
+  .torus-toggle.active{color:#c0c0d8;border-color:rgba(140,140,180,0.16);background:rgba(140,140,180,0.03);}
+  .torus-toggle .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 5px currentColor;}
+  .torus-toggle .info{font-size:7.5px;color:#505068;margin-left:auto;white-space:nowrap;}
+
+  .toggle-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+  .toggle-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:0.04em;
+    padding:3px 7px;border-radius:3px;
+    border:1px solid rgba(140,140,180,0.18);background:rgba(140,140,180,0.03);
+    color:#707888;cursor:pointer;transition:all 0.2s;white-space:nowrap;
+  }
+  .toggle-btn.active{background:rgba(140,140,180,0.15);color:#b8b8d0;border-color:rgba(140,140,180,0.35);}
+
+  /* Zero info tooltip */
+  #zero-info{
+    position:fixed;top:66px;left:14px;
+    background:rgba(8,8,16,0.78);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255,220,100,0.12);border-radius:8px;
+    padding:10px 12px;z-index:20;
+    font-size:9px;line-height:1.7;color:#a0a098;
+    max-width:clamp(200px,22vw,280px);
+    transition:opacity 0.3s;
+  }
+  #zero-info .z-title{
+    font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:600;
+    color:#e0d890;margin-bottom:4px;
+  }
+  #zero-info .z-list{max-height:180px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(220,200,80,0.15) transparent;}
+  #zero-info .z-list::-webkit-scrollbar{width:2px;}
+  #zero-info .z-list::-webkit-scrollbar-thumb{background:rgba(220,200,80,0.15);border-radius:2px;}
+  .z-entry{padding:1px 0;display:flex;gap:6px;font-size:8.5px;}
+  .z-entry .z-n{color:#c8c060;min-width:18px;}
+  .z-entry .z-g{color:#b0a870;}
+  .z-entry.visible .z-g{color:#e8d880;font-weight:500;}
+
+  /* Convergent info */
+  #conv-info{
+    position:fixed;bottom:120px;left:14px;
+    background:rgba(8,8,16,0.68);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(140,140,180,0.08);border-radius:8px;
+    padding:10px 12px;z-index:20;font-size:8.5px;line-height:1.65;color:#687080;
+    max-width:clamp(190px,20vw,260px);
+  }
+  .conv-line{display:flex;gap:6px;align-items:baseline;}
+  .conv-line .cdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+
+  @media(max-width:700px){
+    #panel{top:auto;bottom:120px;right:6px;left:6px;width:auto;max-height:32vh;}
+    #zero-info,#conv-info{display:none;}
+    #dist-plot{height:40px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="main-canvas"></canvas>
+
+<div id="title-bar">
+  <h1>Tres Enrollamientos · Ceros de ζ sobre 𝕋²₍₂,₃₎ · 𝕋²₍₂,₅₎ · 𝕋³₍₂,₃,₅₎</h1>
+  <div class="subtitle">Ceros no triviales marcados · Quasi-clausuras en convergentes · σ&thinsp;=&thinsp;½</div>
+</div>
+
+<div id="panel">
+  <div class="section-title">Toros</div>
+  <div class="torus-toggles">
+    <div class="torus-toggle active" id="tog-t23" style="color:#e09460;">
+      <span class="dot" style="background:#e09460;"></span>𝕋²₍₂,₃₎<span class="info">[1;1,1,2,…]</span>
+    </div>
+    <div class="torus-toggle active" id="tog-t25" style="color:#60a8e0;">
+      <span class="dot" style="background:#60a8e0;"></span>𝕋²₍₂,₅₎<span class="info">[2;3,9,…]</span>
+    </div>
+    <div class="torus-toggle active" id="tog-t235" style="color:#c080e0;">
+      <span class="dot" style="background:#c080e0;"></span>𝕋³₍₂,₃,₅₎<span class="info">Clifford</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-title">Parámetros</div>
+  <div class="ctrl-group"><label>R mayor (𝕋²)<span class="val" id="v-R">1.60</span></label><input type="range" id="s-R" min="0.5" max="3.5" value="1.6" step="0.01"></div>
+  <div class="ctrl-group"><label>R Clifford (𝕋³)<span class="val" id="v-Rc">1.00</span></label><input type="range" id="s-Rc" min="0.3" max="3.0" value="1.0" step="0.01"></div>
+  <div class="ctrl-group"><label>d estereográfica<span class="val" id="v-ds">1.50</span></label><input type="range" id="s-ds" min="1.0" max="3.0" value="1.5" step="0.01"></div>
+  <div class="ctrl-group"><label>σ<span class="val" id="v-sigma">0.50</span></label><input type="range" id="s-sigma" min="0.10" max="0.90" value="0.50" step="0.01"></div>
+  <div class="ctrl-group"><label>Puntos<span class="val" id="v-pts">12000</span></label><input type="range" id="s-pts" min="2000" max="30000" value="12000" step="500"></div>
+
+  <div class="divider"></div>
+  <div class="section-title">Vista</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="btn-autorot">Autorot</button>
+    <button class="toggle-btn" id="btn-axes">Ejes</button>
+    <button class="toggle-btn active" id="btn-glow">Glow</button>
+    <button class="toggle-btn active" id="btn-ghosts">Guías</button>
+    <button class="toggle-btn active" id="btn-zeros">Ceros ζ</button>
+    <button class="toggle-btn active" id="btn-conv">Convergentes</button>
+    <button class="toggle-btn active" id="btn-distplot">d(t) plot</button>
+  </div>
+</div>
+
+<div id="zero-info">
+  <div class="z-title">Ceros no triviales ζ(½+iγₙ)=0</div>
+  <div class="z-list" id="zero-list"></div>
+</div>
+
+<div id="conv-info" id="conv-panel"></div>
+
+<div id="dist-plot"><canvas id="dist-canvas"></canvas></div>
+
+<div id="t-strip">
+  <div class="t-label">t&thinsp;=&thinsp;<span class="t-val" id="v-t">200</span></div>
+  <input type="range" id="s-t" min="1" max="800" value="200" step="0.5">
+  <div class="sweep-controls">
+    <button class="sweep-btn" id="btn-play">▶</button>
+    <button class="sweep-btn" id="btn-reset">↺</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:4px;">
+    <span style="font-size:8px;color:#606078;">vel.</span>
+    <input type="range" id="s-speed" min="0.1" max="6.0" value="1.0" step="0.1" style="width:60px;">
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── Constants ──
+  const ln2=Math.log(2),ln3=Math.log(3),ln5=Math.log(5);
+  const PI2=Math.PI*2;
+
+  // First 30 non-trivial zeta zeros (imaginary parts γₙ)
+  const ZEROS=[
+    14.134725,21.022040,25.010858,30.424876,32.935062,
+    37.586178,40.918719,43.327073,48.005151,49.773832,
+    52.970321,56.446248,59.347044,60.831779,65.112544,
+    67.079811,69.546402,72.067158,75.704691,77.144840,
+    79.337375,82.910381,84.735493,87.425275,88.809111,
+    92.491899,94.651344,95.870634,98.831194,101.317851
+  ];
+
+  // Convergents of ln3/ln2 ≈ 1.58496: p/q pairs
+  const CONV_23=[
+    {p:1,q:1},{p:2,q:1},{p:3,q:2},{p:8,q:5},{p:19,q:12},{p:65,q:41},{p:84,q:53}
+  ];
+  // Convergents of ln5/ln2 ≈ 2.32193
+  const CONV_25=[
+    {p:2,q:1},{p:7,q:3},{p:65,q:28},{p:137,q:59}
+  ];
+
+  // Quasi-closure times: t = 2π·q/ln2 for T²(2,3), similar for T²(2,5)
+  function convTime23(c){ return PI2*c.q/ln2; }
+  function convTime25(c){ return PI2*c.q/ln2; }
+
+  // ── State ──
+  const S={
+    t:200,R:1.6,Rc:1.0,ds:1.5,sigma:0.5,numPts:12000,
+    show23:true,show25:true,show235:true,
+    autoRotate:true,showAxes:false,showGlow:true,showGhosts:true,
+    showZeros:true,showConv:true,showDistPlot:true,
+    sweepPlaying:false,sweepSpeed:1.0,
+  };
+
+  // ── Three.js ──
+  const mainCanvas=document.getElementById('main-canvas');
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x05050a);
+  scene.fog=new THREE.FogExp2(0x05050a,0.015);
+
+  const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,300);
+  const renderer=new THREE.WebGLRenderer({canvas:mainCanvas,antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  // ── Orbit ──
+  const orb={
+    target:new THREE.Vector3(0,0,0),
+    sph:new THREE.Spherical(7.2,Math.PI*0.38,Math.PI*0.2),
+    d:new THREE.Spherical(),scale:1,pan:new THREE.Vector3(),
+    drag:false,panning:false,px:0,py:0,
+    update(){
+      if(S.autoRotate&&!this.drag) this.d.theta-=0.0012;
+      const f=0.08;
+      this.sph.theta+=this.d.theta*(1-f);
+      this.sph.phi+=this.d.phi*(1-f);
+      this.sph.phi=Math.max(0.05,Math.min(Math.PI-0.05,this.sph.phi));
+      this.sph.radius*=this.scale;
+      this.sph.radius=Math.max(1.8,Math.min(35,this.sph.radius));
+      this.scale=1;
+      this.target.add(this.pan);
+      this.pan.multiplyScalar(1-f);
+      this.d.theta*=(1-f);this.d.phi*=(1-f);
+      camera.position.setFromSpherical(this.sph).add(this.target);
+      camera.lookAt(this.target);
+    }
+  };
+  const el=mainCanvas;let lastTD=0;
+  el.addEventListener('pointerdown',e=>{orb.drag=true;orb.panning=e.shiftKey||e.button===2;orb.px=e.clientX;orb.py=e.clientY;el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove',e=>{if(!orb.drag)return;const dx=e.clientX-orb.px,dy=e.clientY-orb.py;orb.px=e.clientX;orb.py=e.clientY;if(orb.panning){const r=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);const u=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);orb.pan.add(r.multiplyScalar(-dx*orb.sph.radius*0.005)).add(u.multiplyScalar(dy*orb.sph.radius*0.005));}else{orb.d.theta-=dx*0.005;orb.d.phi-=dy*0.005;}});
+  el.addEventListener('pointerup',()=>{orb.drag=false;});
+  el.addEventListener('wheel',e=>{e.preventDefault();orb.scale*=e.deltaY>0?1.07:0.93;},{passive:false});
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+  el.addEventListener('touchstart',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastTD=Math.sqrt(dx*dx+dy*dy);}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,dd=Math.sqrt(dx*dx+dy*dy);if(lastTD>0)orb.scale*=lastTD/dd;lastTD=dd;}},{passive:true});
+
+  // ── Axes ──
+  const axH=new THREE.AxesHelper(3);axH.visible=false;scene.add(axH);
+
+  // ── Ghost tori ──
+  let ghost23,ghost25;
+  function buildGhosts(){
+    if(ghost23){scene.remove(ghost23);ghost23.geometry.dispose();}
+    if(ghost25){scene.remove(ghost25);ghost25.geometry.dispose();}
+    const r2=Math.pow(2,-S.sigma);
+    ghost23=new THREE.Mesh(new THREE.TorusGeometry(S.R,r2,24,56),new THREE.MeshBasicMaterial({color:0xe09460,wireframe:true,transparent:true,opacity:0.03}));
+    ghost25=new THREE.Mesh(new THREE.TorusGeometry(S.R,r2,24,56),new THREE.MeshBasicMaterial({color:0x60a8e0,wireframe:true,transparent:true,opacity:0.03}));
+    ghost23.visible=S.showGhosts&&S.show23;
+    ghost25.visible=S.showGhosts&&S.show25;
+    scene.add(ghost23);scene.add(ghost25);
+  }
+
+  // ── Point evaluation helpers ──
+  function evalT2(t,R,sigma,lnA,lnB){
+    const rA=Math.pow(2,-sigma);
+    const thA=lnA*t,thB=lnB*t;
+    return new THREE.Vector3(
+      (R+rA*Math.cos(thA))*Math.cos(thB),
+      (R+rA*Math.cos(thA))*Math.sin(thB),
+      rA*Math.sin(thA)
+    );
+  }
+  function evalT3(t,Rc,ds,sigma){
+    const rP=[Math.pow(2,-sigma),Math.pow(3,-sigma),Math.pow(5,-sigma)];
+    const x1=rP[0]*Math.cos(-ln2*t),y1=rP[0]*Math.sin(-ln2*t);
+    const x2=rP[1]*Math.cos(-ln3*t),y2=rP[1]*Math.sin(-ln3*t);
+    const x3=rP[2]*Math.cos(-ln5*t),y3=rP[2]*Math.sin(-ln5*t);
+    const X4=(Rc+x1)*x2,Y4=(Rc+x1)*y2;
+    const Z4=(Rc+x3)*x1,W4=(Rc+x3)*y1;
+    const d=ds-W4;
+    return new THREE.Vector3(X4/d,Y4/d,Z4/d);
+  }
+
+  // ── Line infrastructure ──
+  function mkLine(op){
+    const o={geom:new THREE.BufferGeometry(),mat:new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:op,linewidth:1}),mesh:null};
+    o.mesh=new THREE.Line(o.geom,o.mat);scene.add(o.mesh);
+    o.update=function(p,c){this.geom.dispose();this.geom=new THREE.BufferGeometry();this.geom.setAttribute('position',new THREE.BufferAttribute(p,3));this.geom.setAttribute('color',new THREE.BufferAttribute(c,3));this.mesh.geometry=this.geom;};
+    o.vis=function(v){this.mesh.visible=v;};
+    return o;
+  }
+  const C={
+    t23:mkLine(0.88),t23g:mkLine(0.07),
+    t25:mkLine(0.88),t25g:mkLine(0.07),
+    t235:mkLine(0.88),t235g:mkLine(0.07),
+  };
+  C.t23g.mesh.scale.set(1.01,1.01,1.01);
+  C.t25g.mesh.scale.set(1.01,1.01,1.01);
+  C.t235g.mesh.scale.set(1.01,1.01,1.01);
+
+  // ── Zero & convergent markers ──
+  const zeroGroup=new THREE.Group();scene.add(zeroGroup);
+  const convGroup=new THREE.Group();scene.add(convGroup);
+
+  // Shared geometries for markers
+  const zeroSphereGeo=new THREE.SphereGeometry(0.06,12,12);
+  const zeroGlowGeo=new THREE.SphereGeometry(0.14,10,10);
+  const convDiamondGeo=new THREE.OctahedronGeometry(0.05,0);
+
+  function clearGroup(g){while(g.children.length)g.remove(g.children[0]);}
+
+  // Materials
+  const zeroMats={
+    amber:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.95}),
+    blue:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.95}),
+    mag:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.95}),
+    glow:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.18}),
+  };
+  const convMats={
+    amber:new THREE.MeshBasicMaterial({color:0xff8040,transparent:true,opacity:0.85}),
+    blue:new THREE.MeshBasicMaterial({color:0x40a0ff,transparent:true,opacity:0.85}),
+    amberGlow:new THREE.MeshBasicMaterial({color:0xff8040,transparent:true,opacity:0.15}),
+    blueGlow:new THREE.MeshBasicMaterial({color:0x40a0ff,transparent:true,opacity:0.15}),
+  };
+
+  // Ring geometry for convergent markers
+  const convRingGeo=new THREE.RingGeometry(0.08,0.12,16);
+
+  function buildZeroMarkers(){
+    clearGroup(zeroGroup);
+    if(!S.showZeros) return;
+    const visibleZeros=ZEROS.filter(g=>g<=S.t);
+
+    visibleZeros.forEach(gamma=>{
+      // Place on each visible torus
+      if(S.show23){
+        const p=evalT2(gamma,S.R,S.sigma,ln2,ln3);
+        const m=new THREE.Mesh(zeroSphereGeo,zeroMats.amber);m.position.copy(p);zeroGroup.add(m);
+        const gl=new THREE.Mesh(zeroGlowGeo,zeroMats.glow);gl.position.copy(p);zeroGroup.add(gl);
+      }
+      if(S.show25){
+        const p=evalT2(gamma,S.R,S.sigma,ln2,ln5);
+        const m=new THREE.Mesh(zeroSphereGeo,zeroMats.blue);m.position.copy(p);zeroGroup.add(m);
+        const gl=new THREE.Mesh(zeroGlowGeo,zeroMats.glow);gl.position.copy(p);zeroGroup.add(gl);
+      }
+      if(S.show235){
+        const p=evalT3(gamma,S.Rc,S.ds,S.sigma);
+        const m=new THREE.Mesh(zeroSphereGeo,zeroMats.mag);m.position.copy(p);zeroGroup.add(m);
+        const gl=new THREE.Mesh(zeroGlowGeo,zeroMats.glow);gl.position.copy(p);zeroGroup.add(gl);
+      }
+    });
+  }
+
+  function buildConvMarkers(){
+    clearGroup(convGroup);
+    if(!S.showConv) return;
+
+    if(S.show23){
+      CONV_23.forEach(c=>{
+        const tc=convTime23(c);
+        if(tc>S.t) return;
+        const p=evalT2(tc,S.R,S.sigma,ln2,ln3);
+        const m=new THREE.Mesh(convDiamondGeo,convMats.amber);m.position.copy(p);convGroup.add(m);
+        const gl=new THREE.Mesh(zeroGlowGeo,convMats.amberGlow);gl.position.copy(p);convGroup.add(gl);
+      });
+    }
+    if(S.show25){
+      CONV_25.forEach(c=>{
+        const tc=convTime25(c);
+        if(tc>S.t) return;
+        const p=evalT2(tc,S.R,S.sigma,ln2,ln5);
+        const m=new THREE.Mesh(convDiamondGeo,convMats.blue);m.position.copy(p);convGroup.add(m);
+        const gl=new THREE.Mesh(zeroGlowGeo,convMats.blueGlow);gl.position.copy(p);convGroup.add(gl);
+      });
+    }
+  }
+
+  // ── Curve computation ──
+  function computeT2(t,N,R,sigma,lnA,lnB,baseHue){
+    const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+    const dt=t/N,rA=Math.pow(2,-sigma);
+    const c=new THREE.Color();
+    // Pre-compute zero proximity for color
+    const visZ=ZEROS.filter(g=>g<=t);
+    for(let i=0;i<N;i++){
+      const tt=i*dt;
+      const thA=lnA*tt,thB=lnB*tt;
+      pos[i*3]=(R+rA*Math.cos(thA))*Math.cos(thB);
+      pos[i*3+1]=(R+rA*Math.cos(thA))*Math.sin(thB);
+      pos[i*3+2]=rA*Math.sin(thA);
+
+      // Proximity to nearest zero → brightness boost
+      let minDist=999;
+      for(let z=0;z<visZ.length;z++){const dd=Math.abs(tt-visZ[z]);if(dd<minDist)minDist=dd;}
+      const zeroProx=Math.exp(-minDist*minDist*0.8); // Gaussian proximity
+
+      const hue=baseHue+0.03*(tt/t);
+      const sat=0.65+0.25*zeroProx;
+      const light=0.32+0.18*Math.sin(tt*0.3)+0.35*zeroProx;
+      c.setHSL(hue%1,sat,Math.min(light,0.85));
+      col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+    }
+    return{pos,col};
+  }
+
+  function computeT3(t,N,Rc,ds,sigma){
+    const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+    const dt=t/N;
+    const rP=[Math.pow(2,-sigma),Math.pow(3,-sigma),Math.pow(5,-sigma)];
+    const c=new THREE.Color();
+    const visZ=ZEROS.filter(g=>g<=t);
+    for(let i=0;i<N;i++){
+      const tt=i*dt;
+      const x1=rP[0]*Math.cos(-ln2*tt),y1=rP[0]*Math.sin(-ln2*tt);
+      const x2=rP[1]*Math.cos(-ln3*tt),y2=rP[1]*Math.sin(-ln3*tt);
+      const x3=rP[2]*Math.cos(-ln5*tt),y3=rP[2]*Math.sin(-ln5*tt);
+      const X4=(Rc+x1)*x2,Y4=(Rc+x1)*y2;
+      const Z4=(Rc+x3)*x1,W4=(Rc+x3)*y1;
+      const d=ds-W4;
+      pos[i*3]=X4/d;pos[i*3+1]=Y4/d;pos[i*3+2]=Z4/d;
+
+      let minDist=999;
+      for(let z=0;z<visZ.length;z++){const dd=Math.abs(tt-visZ[z]);if(dd<minDist)minDist=dd;}
+      const zeroProx=Math.exp(-minDist*minDist*0.8);
+
+      const hue=0.78+0.08*(tt/t)-0.12*zeroProx;
+      c.setHSL(hue%1,0.6+0.3*zeroProx,0.34+0.15*Math.sin(tt*0.25)+0.38*zeroProx);
+      col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+    }
+    return{pos,col};
+  }
+
+  // ── Return-distance plot (2D canvas) ──
+  const distCanvas=document.getElementById('dist-canvas');
+  const dctx=distCanvas.getContext('2d');
+
+  function drawDistPlot(){
+    const W=distCanvas.width=distCanvas.offsetWidth*devicePixelRatio;
+    const H=distCanvas.height=distCanvas.offsetHeight*devicePixelRatio;
+    dctx.clearRect(0,0,W,H);
+
+    if(!S.showDistPlot){document.getElementById('dist-plot').style.opacity='0';return;}
+    document.getElementById('dist-plot').style.opacity='1';
+
+    const t=S.t,steps=Math.min(800,Math.floor(t*2));
+    if(steps<2) return;
+
+    // Compute return distance for T²(2,3): distance from γ(t) to γ(0)
+    const p0_23=evalT2(0,S.R,S.sigma,ln2,ln3);
+    const p0_25=evalT2(0,S.R,S.sigma,ln2,ln5);
+    const dists23=[],dists25=[];
+    let maxD=0.001;
+
+    for(let i=0;i<=steps;i++){
+      const tt=(i/steps)*t;
+      if(S.show23){
+        const p=evalT2(tt,S.R,S.sigma,ln2,ln3);
+        const d=p.distanceTo(p0_23);
+        dists23.push({t:tt,d});if(d>maxD)maxD=d;
+      }
+      if(S.show25){
+        const p=evalT2(tt,S.R,S.sigma,ln2,ln5);
+        const d=p.distanceTo(p0_25);
+        dists25.push({t:tt,d});if(d>maxD)maxD=d;
+      }
+    }
+
+    const pad=4;
+    const pw=W-pad*2, ph=H-pad*2;
+
+    function drawDist(arr,color,alpha){
+      if(!arr.length) return;
+      dctx.beginPath();
+      dctx.strokeStyle=color;
+      dctx.globalAlpha=alpha;
+      dctx.lineWidth=devicePixelRatio*1.2;
+      for(let i=0;i<arr.length;i++){
+        const x=pad+(arr[i].t/t)*pw;
+        const y=pad+ph-(arr[i].d/maxD)*ph;
+        if(i===0) dctx.moveTo(x,y);else dctx.lineTo(x,y);
+      }
+      dctx.stroke();
+    }
+
+    // Background grid
+    dctx.globalAlpha=0.08;
+    dctx.strokeStyle='#8888aa';
+    dctx.lineWidth=devicePixelRatio*0.5;
+    for(let i=0;i<=4;i++){
+      const y=pad+(ph*i/4);
+      dctx.beginPath();dctx.moveTo(pad,y);dctx.lineTo(pad+pw,y);dctx.stroke();
+    }
+
+    drawDist(dists23,'#e09460',0.7);
+    drawDist(dists25,'#60a8e0',0.7);
+
+    // Mark zeros as vertical lines
+    dctx.globalAlpha=0.35;
+    dctx.strokeStyle='#ffe060';
+    dctx.lineWidth=devicePixelRatio*1;
+    ZEROS.forEach(g=>{
+      if(g>t) return;
+      const x=pad+(g/t)*pw;
+      dctx.beginPath();dctx.moveTo(x,pad);dctx.lineTo(x,pad+ph);dctx.stroke();
+    });
+
+    // Mark convergents as small ticks
+    if(S.showConv){
+      dctx.lineWidth=devicePixelRatio*1.5;
+      CONV_23.forEach(c=>{
+        const tc=convTime23(c);if(tc>t)return;
+        dctx.globalAlpha=0.5;dctx.strokeStyle='#e09460';
+        const x=pad+(tc/t)*pw;
+        dctx.beginPath();dctx.moveTo(x,pad+ph-4);dctx.lineTo(x,pad+ph+2);dctx.stroke();
+      });
+      CONV_25.forEach(c=>{
+        const tc=convTime25(c);if(tc>t)return;
+        dctx.globalAlpha=0.5;dctx.strokeStyle='#60a8e0';
+        const x=pad+(tc/t)*pw;
+        dctx.beginPath();dctx.moveTo(x,pad+ph-4);dctx.lineTo(x,pad+ph+2);dctx.stroke();
+      });
+    }
+
+    // Labels
+    dctx.globalAlpha=0.35;
+    dctx.font=`${9*devicePixelRatio}px 'IBM Plex Mono'`;
+    dctx.fillStyle='#8080a0';
+    dctx.fillText('d(t,0)',pad+2,pad+10*devicePixelRatio);
+    dctx.fillText('0',pad+2,pad+ph-2);
+
+    dctx.globalAlpha=1;
+  }
+
+  // ── Zero list panel ──
+  function updateZeroList(){
+    const el=document.getElementById('zero-list');
+    el.innerHTML=ZEROS.map((g,i)=>{
+      const vis=g<=S.t;
+      return `<div class="z-entry${vis?' visible':''}"><span class="z-n">${i+1}</span><span class="z-g">γ = ${g.toFixed(3)}${vis?' ●':''}</span></div>`;
+    }).join('');
+  }
+
+  // ── Convergent panel ──
+  function updateConvPanel(){
+    const el=document.getElementById('conv-info');
+    let html='<div style="font-family:Cormorant Garamond,serif;font-size:10px;font-weight:600;color:#8898a8;margin-bottom:5px;">Quasi-clausuras (convergentes)</div>';
+
+    html+='<div style="margin-bottom:4px;">';
+    CONV_23.forEach(c=>{
+      const tc=convTime23(c);
+      const vis=tc<=S.t;
+      html+=`<div class="conv-line" style="opacity:${vis?1:0.3}"><span class="cdot" style="background:#e09460;"></span><span style="color:${vis?'#e0a878':'#505058'};font-size:8px;">${c.p}/${c.q} → t≈${tc.toFixed(1)}</span></div>`;
+    });
+    html+='</div><div>';
+    CONV_25.forEach(c=>{
+      const tc=convTime25(c);
+      const vis=tc<=S.t;
+      html+=`<div class="conv-line" style="opacity:${vis?1:0.3}"><span class="cdot" style="background:#60a8e0;"></span><span style="color:${vis?'#78b8e0':'#505058'};font-size:8px;">${c.p}/${c.q} → t≈${tc.toFixed(1)}</span></div>`;
+    });
+    html+='</div>';
+    el.innerHTML=html;
+  }
+
+  // ── Rebuild all ──
+  function rebuild(){
+    const t=S.t,N=S.numPts;
+
+    if(S.show23){
+      const d=computeT2(t,N,S.R,S.sigma,ln2,ln3,0.07);
+      C.t23.update(d.pos,d.col);C.t23.vis(true);
+      C.t23g.update(d.pos.slice(),d.col.slice());C.t23g.vis(S.showGlow);
+    }else{C.t23.vis(false);C.t23g.vis(false);}
+
+    if(S.show25){
+      const d=computeT2(t,N,S.R,S.sigma,ln2,ln5,0.56);
+      C.t25.update(d.pos,d.col);C.t25.vis(true);
+      C.t25g.update(d.pos.slice(),d.col.slice());C.t25g.vis(S.showGlow);
+    }else{C.t25.vis(false);C.t25g.vis(false);}
+
+    if(S.show235){
+      const d=computeT3(t,N,S.Rc,S.ds,S.sigma);
+      C.t235.update(d.pos,d.col);C.t235.vis(true);
+      C.t235g.update(d.pos.slice(),d.col.slice());C.t235g.vis(S.showGlow);
+    }else{C.t235.vis(false);C.t235g.vis(false);}
+
+    if(ghost23)ghost23.visible=S.showGhosts&&S.show23;
+    if(ghost25)ghost25.visible=S.showGhosts&&S.show25;
+
+    buildZeroMarkers();
+    buildConvMarkers();
+    updateZeroList();
+    updateConvPanel();
+    drawDistPlot();
+  }
+
+  // ── Animate zero glow pulse ──
+  function pulseZeros(time){
+    const pulse=0.6+0.4*Math.sin(time*3);
+    zeroMats.glow.opacity=0.12+0.14*pulse;
+    zeroSphereGeo.scale;
+    // Pulse the glow spheres
+    zeroGroup.children.forEach((ch,i)=>{
+      if(i%2===1){// glow meshes are at odd indices
+        const s=1+0.15*pulse;
+        ch.scale.set(s,s,s);
+      }
+    });
+  }
+
+  // ── UI wiring ──
+  const $=id=>document.getElementById(id);
+
+  const sT=$('s-t'),vT=$('v-t');
+  sT.addEventListener('input',()=>{
+    S.t=parseFloat(sT.value);
+    vT.textContent=S.t<10?S.t.toFixed(1):S.t.toFixed(0);
+    rebuild();
+  });
+
+  const btnPlay=$('btn-play');
+  btnPlay.addEventListener('click',()=>{
+    S.sweepPlaying=!S.sweepPlaying;
+    if(S.sweepPlaying){btnPlay.textContent='⏸';btnPlay.classList.add('playing');}
+    else{btnPlay.textContent='▶';btnPlay.classList.remove('playing');}
+  });
+  $('btn-reset').addEventListener('click',()=>{
+    S.t=1;sT.value=1;vT.textContent='1';
+    S.sweepPlaying=false;btnPlay.textContent='▶';btnPlay.classList.remove('playing');
+    rebuild();
+  });
+  $('s-speed').addEventListener('input',()=>{S.sweepSpeed=parseFloat($('s-speed').value);});
+
+  function wire(sId,vId,prop,fmt){
+    $(sId).addEventListener('input',()=>{S[prop]=parseFloat($(sId).value);$(vId).textContent=fmt(S[prop]);rebuild();buildGhosts();});
+  }
+  wire('s-R','v-R','R',v=>v.toFixed(2));
+  wire('s-Rc','v-Rc','Rc',v=>v.toFixed(2));
+  wire('s-ds','v-ds','ds',v=>v.toFixed(2));
+  wire('s-sigma','v-sigma','sigma',v=>v.toFixed(2));
+  wire('s-pts','v-pts','numPts',v=>v.toFixed(0));
+
+  function togT(id,prop){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('active',S[prop]);rebuild();});}
+  togT('tog-t23','show23');togT('tog-t25','show25');togT('tog-t235','show235');
+
+  function togB(id,prop,cb){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('active',S[prop]);if(cb)cb();else rebuild();});}
+  togB('btn-autorot','autoRotate',()=>{});
+  togB('btn-axes','showAxes',()=>{axH.visible=S.showAxes;});
+  togB('btn-glow','showGlow');
+  togB('btn-ghosts','showGhosts',()=>{if(ghost23)ghost23.visible=S.showGhosts&&S.show23;if(ghost25)ghost25.visible=S.showGhosts&&S.show25;});
+  togB('btn-zeros','showZeros');
+  togB('btn-conv','showConv');
+  togB('btn-distplot','showDistPlot',()=>{drawDistPlot();});
+
+  // ── Animation loop ──
+  let last=performance.now();
+  function animate(now){
+    requestAnimationFrame(animate);
+    const dt=(now-last)*0.001;last=now;
+
+    if(S.sweepPlaying){
+      S.t+=dt*S.sweepSpeed*16;
+      const mx=parseFloat(sT.max);
+      if(S.t>=mx){S.t=mx;S.sweepPlaying=false;btnPlay.textContent='▶';btnPlay.classList.remove('playing');}
+      sT.value=S.t;vT.textContent=S.t<10?S.t.toFixed(1):S.t.toFixed(0);
+      rebuild();
+    }
+
+    pulseZeros(now*0.001);
+    orb.update();
+    renderer.render(scene,camera);
+  }
+
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+    drawDistPlot();
+  });
+
+  buildGhosts();rebuild();animate(performance.now());
+})();
+</script>
+</body>
+</html>

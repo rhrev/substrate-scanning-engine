@@ -1,0 +1,838 @@
+\documentclass[11pt]{amsart}
+
+% ── Packages ──────────────────────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+% \usepackage{microtype}  % requires scalable fonts; enable if using lmodern
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+}
+
+% ── Metadata ──────────────────────────────────────────────────────────
+\title{Substrate Scanning Engine:\\
+  Geometric Parameter Generation for $L$-functions\\
+  via Elementary Visualization and Systematic Elimination}
+
+\author{Ricardo Hern\'andez Reveles}
+\address{Independent researcher, Guadalajara, M\'exico}
+\email{} % TODO: add if desired
+\urladdr{https://orcid.org/0009-0001-1993-1471}
+\date{March 2026}
+\thanks{Serie~I Working Paper. Code: AGPL-3.0-or-later. Papers: CC-BY-4.0.}
+
+\subjclass[2020]{11M06 (primary); 68T05, 65D99 (secondary)}
+\keywords{Riemann zeta function, spectral features, geometric machine learning,
+  Euler product, $L$-functions, Substrate Scanning, computational phenomenology}
+
+\begin{document}
+
+\begin{abstract}
+We describe a modular computational engine that takes any Euler product and
+produces geometric parameters for machine learning without statistical
+assumptions. The engine maps the Euler product to a toroidal embedding,
+decomposes the resulting dynamics into three separable scales (drift, spiral,
+continued-fraction modulation), constructs the electrostatic potential
+$V(\sigma,t) = -\log\lvert -\zeta'/\zeta \rvert$, computes its Laplacian
+(confirming harmonicity between zeros at $0.07\%$ median residual), and
+extracts 29 deterministic features per query point. Applied to the Riemann
+zeta function, the engine discriminates zeros from non-zeros with $5.6\sigma$
+separation on phase coherence alone, using only the partial Euler product.
+
+The central decomposition is
+$\theta^*(k,\gamma) = f(b)\cdot\cos(\ln(p)\cdot\gamma)$, where
+$f(b) = b/(b+1)$ is the natural per-step contraction (universal,
+amplitude-only) and $\cos(\ln(p)\cdot\gamma)$ is the phase modulation
+(specific to each zero). Three independent tests confirm that the arithmetic
+channel (factorization of $p-1$) is orthogonal to both amplitude and phase
+channels, establishing that shared algebra does not imply shared information.
+
+The engine is demonstrated on 16 domains: the Riemann zeta function,
+Dirichlet $L$-functions, elliptic curve $L$-functions, Cayley graph spectra,
+4-port differential S-parameters (signal integrity), vibration spectra
+(rotating machinery fault diagnosis), 2D physical cavities
+(antenna/acoustic/laser optimization), visible-light spectroscopy
+(colorimetry), general graph analysis (social networks, supply chains, bot
+detection), abstract syntax trees (code clone detection, refactoring), phonon
+spectra (materials design, thermoelectric screening), 3D wavelet subband
+analysis (volumetric data), turbulence cascade classification, 2D image
+spectral analysis (forgery detection), spectral pathfinding (graph
+navigation), and elliptic curve cryptographic auditing---with zero
+architectural changes between domains. The constraint is precise: the system
+must have a linear operator with discrete spectrum. Under this condition, the
+motor generates, ML selects, and domain physics verifies. Estimated
+computational savings range from $10\times$ (BSD verification) to
+$10{,}000\times$ (materials design: 29,241 compositions screened in 32
+seconds vs.\ DFT).
+
+No result in this paper is claimed as mathematically novel. The contribution
+is methodological: a systematic pipeline for geometric exploration that
+produces falsifiable outputs, documents its own overclaims, and eliminates
+impossible approaches at visual speed.
+\end{abstract}
+
+\maketitle
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section*{0.\ Errata and Methodological Transparency}
+\label{sec:errata}
+\addcontentsline{toc}{section}{0.\ Errata and Methodological Transparency}
+% ══════════════════════════════════════════════════════════════════════
+
+This section appears first because all subsequent claims should be read in
+light of these corrections. During the development of this engine, seven
+overclaims were produced and corrected within the same working sessions. Each
+is documented below with the quantitative evidence that falsified it.
+
+\subsection*{0.1 Overclaims Corrected}
+
+\begin{enumerate}[label=(\alph*)]
+\item \textbf{``Exactly as $f(b)$''} --- the per-step contraction
+  $f(b) = b/(b+1)$ is algebraically exact, but the cumulative exponent is
+  $-1.4 \pm 0.1$, not $-1.0$. The discrepancy arises because per-step
+  exactness does not imply exact geometric series accumulation.
+
+\item \textbf{Spiral exponent $\alpha = -0.96$} --- artifact of
+  fixed-reference measurement ($P(N_{200})$ as anchor).
+  Reference-independent methods (moving center, consecutive differences) give
+  $\alpha = -1.4 \pm 0.1$ consistently across 5 methods and 8~zeros.
+
+\item \textbf{Poincar\'e compactification produces convergence to
+  $\partial B^3$} --- incorrect. Since $|P(N)|$ decreases with~$N$ (the
+  normalizing sum $Z(N)$ grows in the denominator), the compactified points
+  move toward the origin of~$B^3$, not toward the boundary. The gap
+  $1-|\tilde{U}_P|$ grows from $0.59$ ($N=10$) to $0.70$ ($N=2000$). The
+  algebraic identity $f(b) = \text{Poincar\'e}_{1D}$ remains valid; the
+  geometric application to these trajectories was the overclaim.
+
+\item \textbf{The $f(b)$ bridge between digit-sum and toroidal channels} ---
+  empirically falsified by the dual test ($v_2(p-1)$ as cross-channel
+  predictor, 5132 primes): $v_2(p-1)$ predicts digit-sum deficit with
+  $\rho = -0.43$ but has $\rho < 0.01$ for all toroidal quantities.
+
+\item \textbf{$\gamma \cdot |\omega| \approx \text{constant}$} ---
+  $\text{CV} = 36\%$, not constant. Removed.
+
+\item \textbf{The cone of radial directions in $B^3$ closes with~$N$} ---
+  it does not. Semi-angle decays as $N^{-0.19}$, too slow for convergence.
+
+\item \textbf{``The zeros exist as points on $\partial B^3$''} ---
+  reification of the embedding. The zeros exist as zeros of the analytic
+  continuation of~$\zeta(s)$. The compactified trajectories point toward
+  boundary positions that encode the zeros; they do not constitute the zeros.
+\end{enumerate}
+
+The ratio of eliminated claims to surviving results is $7{:}1$. This ratio is
+characteristic of honest computational phenomenology and is the primary
+diagnostic of the methodology.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Introduction: $t$ as Parameter}
+\label{sec:intro}
+% ══════════════════════════════════════════════════════════════════════
+
+The factorization
+\begin{equation}\label{eq:fundamental}
+  p^{-s} = p^{-\sigma} \cdot e^{-i\ln(p)\cdot t}
+\end{equation}
+is a fact, not a choice. The parameter~$t$ traces the critical line; each
+prime generates a mode with frequency $\omega = \ln(p)$; the zeros of the
+Riemann zeta function are the values of~$t$ where all phases conspire to
+annihilate the sum. Everything else in this paper---the embedding, the three
+scales, the potential landscape, the envelope decomposition---is scaffolding
+around this single equation.
+
+The Euler product $\prod_p (1 - p^{-s})^{-1}$ converges absolutely for
+$\sigma > 1$. At $\sigma = 1/2$, the partial products do not converge
+(Conrad~\cite{Conrad2005}, extending earlier work of Goldfeld and Kurokawa
+et~al.). The non-convergence is not a technical obstacle---it is the
+fundamental structural fact. Kurokawa's ``Deep Riemann Hypothesis'' asserts
+that convergence of partial Euler products at the center of the critical
+strip would imply something strictly deeper than the generalized Riemann
+hypothesis.
+
+This paper describes a computational engine that takes any Euler product and
+produces its geometric atlas: a collection of deterministic features derived
+from the product's structure, suitable as input for machine learning without
+statistical assumptions.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{The Geometric Engine}
+\label{sec:engine}
+% ══════════════════════════════════════════════════════════════════════
+
+The engine consists of eight modules, each independently testable. The input
+is an Euler product (abstract base class); the output is a 29-dimensional
+feature vector per query point $(\sigma, t, K)$.
+
+\subsection{Module 1: Euler Product}
+
+Abstract interface with methods: \texttt{primes(K)},
+\texttt{local\_factor(p,s)}, \texttt{log\_deriv\_term(p,s)},
+\texttt{arithmetic\_channel(p)}. Concrete implementations provided for
+$\zeta(s)$, $L(s,\chi)$, and $L(s,E)$. The \texttt{arithmetic\_channel}
+method returns features specific to each $L$-function: $v_2(p-1)$ and
+$\mathrm{ord}_2(p)/(p-1)$ for~$\zeta$; $\chi(p)$ for Dirichlet; $a_p$ for
+elliptic curves.
+
+\subsection{Module 2: Toroidal Embedding}
+
+Maps the Euler product to weighted coordinates on the mixed torus
+$\mathbb{T}^2_{(p_k, p_{k+1})}$ via $p^{-s} = p^{-\sigma}\cdot e^{-i\omega
+t}$. The embedding is standard (Bohr torus, 1920s). What is specific to this
+work is the pair-weighted parametrization and the decomposition into three
+scales.
+
+\subsection{Module 3: Three Scales}
+
+The trajectory $P(N)$ decomposes into: Scale~1 (drift, $\sim 1/\ln N$,
+divergent by Mertens), Scale~2 (spiral, $\sim N^{-1.4}$,
+reference-independent), Scale~3 (CF modulation, classical Khinchin). The
+decomposition is specific to this embedding; the scales may not have
+counterparts in other parametrizations.
+
+\subsection{Module 4: Envelope Decomposition}
+
+The natural per-step weight is $f(b_k) = b_k/(1+b_k)$ where
+$b_k = p_k^{-\sigma}/Z_k$. Optimization of weighted log-derivative loss over
+known zeros produces optimal weights $\theta^*(k,\gamma)$. The central result
+of the pipeline:
+\begin{equation}\label{eq:envelope}
+  \theta^*(k, \gamma)
+  = f(b_k)\cdot\bigl[A + B\cos(\ln(p_k)\cdot\gamma)
+                         + C\sin(\ln(p_k)\cdot\gamma)\bigr]
+\end{equation}
+where $f(b)$ is universal (amplitude decay) and the trigonometric factor is
+zero-specific (phase tuning). $R^2$ ranges from $0.09$ ($K=20$) to $0.31$
+($K=30$, $\gamma_3$). The phase factor is the numerical fingerprint of
+Connes' prolate operator.
+
+\subsection{Module 5: Potential Landscape}
+
+$V(\sigma,t) = -\log\lvert -\zeta'/\zeta(\sigma+it)\rvert$ is the
+electrostatic potential with charges at the zeros. Between zeros,
+$\Delta V \approx 0$ (median $|V|/|V| = 0.0007$ over 458 grid points). Near
+zeros, $\Delta V$ diverges. The integral $\oint V\,dA$ around each zero
+approaches $2\pi$ in principle (Dirac delta charges), though for the partial
+product the charges are diffuse rather than point-like.
+
+\subsection{Module 6: Weil Spectrum}
+
+Discretized Weil quadratic form
+$W_{jk} = \sqrt{\ln p_j}\cdot\sqrt{\ln p_k}\cdot p_j^{-1/4}\cdot
+p_k^{-1/4}\cdot\cos\bigl((\ln p_j - \ln p_k)\cdot\gamma\bigr)$.
+Eigenvalues computed by Jacobi iteration for $K \le 150$. The minimum
+eigenvalue detects the zero; the spectral gap measures resolution.
+
+\subsection{Module 7: Channel Orthogonality}
+
+Tests independence between Canal~A (arithmetic: $v_2$, $\mathrm{ord}_2$,
+$\chi$, $a_p$), Canal~B (amplitude: $\ln p$, $p^{-1/2}$), and Canal~C
+(phase: $\cos(\ln p \cdot \gamma)$, $\sin(\ln p \cdot \gamma)$). Maximum
+Spearman~$\rho$ between column pairs. For~$\zeta$: $A\perp B$
+($\rho < 0.28$), $A\perp C$ ($\rho < 0.33$), $B$ not orthogonal to~$C$
+(share $\ln p$).
+
+\subsection{Module 8: Feature Vector}
+
+Combines all modules into a 29-dimensional vector: 3~meta ($\sigma$, $t$,
+$K$), 4~torus, 6~potential ($V$, $\nabla V$, $\Delta V$, harmonicity),
+5~Weil (eigenvalues), 6~envelope ($f(b)$ stats, phase coherence),
+2~Poincar\'e (radius, gap), 3~channel ($\rho$ cross-correlations). Output is
+a \texttt{numpy} array, deterministic, reproducible, and computable in
+${\sim}8\,$ms per query.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Results}
+\label{sec:results}
+% ══════════════════════════════════════════════════════════════════════
+
+\subsection{Zero Discrimination}
+
+At $K=30$, $\sigma=0.5$, the three features with highest zero/non-zero
+separation are: phase coherence ($5.6\sigma$), $V$~potential ($2.4\sigma$),
+and gradient magnitude ($0.75\sigma$). Phase coherence alone classifies zeros
+with zero training. This is the Canal~C signal: at a zero, the phases
+$\ln(p)\cdot\gamma$ conspire, producing high coherence; away from zeros, they
+cancel.
+
+\subsection{Envelope Factorization}
+
+Per-zero optimal weights are \textsc{zero-specific} (mean pairwise
+$|r| = 0.14$). The third axis beyond Canal~A and~B is
+$\cos(\ln(p)\cdot\gamma)$---the phase of the target zero evaluated at each
+prime ($\rho = -0.59$, $p = 6.6\times 10^{-4}$ at $K=30$). Canal~A ($v_2$,
+$\mathrm{ord}_2$) is absent from the optimal weights at every~$K$ tested
+($r < 0.1$). The optimal operator for zero detection is $f(b)\cdot\cos(\omega)$,
+which is purely spectral.
+
+\subsection{The $\sigma$ Transition}
+
+Animating $\sigma$ from 1.2 to 0.3 shows the convergence/divergence
+transition as a continuous geometric deformation: the spiral passes from
+closed (convergent product) to open (divergent drift). The transition point
+is the boundary of the Euler product's convergence region, visible as the
+moment the spiral stops closing. This is the prime number theorem made curve:
+the spiral does not close at $\sigma = 1/2$ because $\sum 1/p$ diverges
+(Mertens), and the pseudo-randomness of primes decreases with~$p$, visible
+as increasing coherence of consecutive steps.
+
+\subsection{Geodesics}
+
+Gradient descent on $V(\sigma,t)$ from any $\sigma > 1/2$ converges to
+$\sigma = 1/2$. The geodesics channel between zero-wells, attracted by the
+saddle points. The surface~$V$ is harmonic between singularities
+($\Delta V = 0$), confirming the electrostatic analogy. The zeros are point
+charges; the critical line is the equilibrium of the boundary conditions
+imposed by the functional equation's symmetry $s \leftrightarrow 1-s$.
+
+\subsection{Cross-Domain Validation}
+
+The engine runs on elliptic curve $L$-functions with zero code changes. For
+four toy curves ($y^2 = x^3 + ax + b$), the potential~$V$ at $\sigma=1$
+discriminates rank: the curve with a rational point (suggesting rank
+$\ge 1$) has $V = -1.32$, deeper than rank-0 curves ($V \approx -1.00$ to
+$-1.23$). Canal~A ($a_p$) is orthogonal to all geometric features
+($\rho < 0.11$). The engine also maps to Cayley graph spectra: eigenvalues
+of the graph Laplacian correspond to zeta zeros, the spectral gap
+corresponds to the zero-free region, and the Ramanujan bound corresponds to
+RH.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Connection to Recent Work}
+\label{sec:connection}
+% ══════════════════════════════════════════════════════════════════════
+
+\subsection{Connes (arXiv:2602.04022, February 2026)}
+
+Connes~\cite{Connes2026} extremizes the Weil quadratic form restricted to primes $\le 13$,
+approximating the first 50~zeros with precision ranging from
+$2.6\times 10^{-55}$ to~$10^{-3}$. His prolate operator is the
+formalization of our Module~4: it constructs optimal weights by extremizing a
+quadratic form. Our decomposition $\theta^* = f(b)\cdot\cos(\omega)$ is the
+numerical separation of his operator into infrastructure ($f(b)$, amplitude)
+and signal ($\cos(\omega)$, phase). Our engine achieves $10^{-6}$ precision
+with L-BFGS on the log-derivative loss; the 49 orders of magnitude
+difference reflects the difference between the Weil form and a naive loss
+function.
+
+\subsection{Conrad (\textit{Canadian J.\ Math.}, 2005)}
+
+Conrad proved that convergence of partial Euler products on the critical line
+is equivalent to a condition strictly deeper than the Riemann hypothesis. Our
+computational verification (50-digit Cauchy test, three independent methods)
+confirms his theorem. Our geometric contribution is making the
+non-convergence visible as a spiral that never closes.
+
+\subsection{Guth--Maynard (2024, accepted \textit{Annals} 2025)}
+
+Their zero density estimate~\cite{GuthMaynard2024}
+$N(\sigma,T) \le T^{30(1-\sigma)/13 + o(1)}$ improves Ingham's 1940 bound.
+The result has no direct intersection with our work: their techniques (large
+value estimates, decoupling) operate in a different space from our geometric
+features. We include it for completeness, not for borrowed relevance.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Attribution and Scope}
+\label{sec:attribution}
+% ══════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[label=(\alph*)]
+\item The non-convergence of partial Euler products at $\sigma = 1/2$ is
+  Conrad~\cite{Conrad2005}, formalizing earlier work. Our contribution:
+  computational verification and geometric visualization.
+
+\item The toroidal embedding via $p^{-s}$ on the Bohr torus is classical
+  (Bohr 1920s). Our contribution: the pair-weighted mixed-torus
+  parametrization and three-scale decomposition.
+
+\item The identity $f(b) = b/(b+1)$ as the Poincar\'e compactification in
+  1D is elementary. Our contribution: identifying it as the per-step
+  contraction of the Euler product, and proving that its geometric
+  application fails (gap grows, cone does not close).
+
+\item The class number identity $S - k/2 = -h(-p)/2$ is derivable from
+  Dirichlet 1839. Our contribution: the route of discovery (Substrate
+  Scanning through 5~phases) and explicit verification across 961~primes.
+
+\item The electrostatic interpretation of $\log\lvert -\zeta'/\zeta \rvert$
+  is implicit in the theory of meromorphic functions. Our contribution:
+  quantitative verification of harmonicity ($0.07\%$ median) and the
+  visualization as 3D surface with Laplacian coloring.
+\end{enumerate}
+
+No result in this paper is claimed as a new theorem. The contribution is the
+engine and the methodology that produced it.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Methodology: Substrate Scanning}
+\label{sec:methodology}
+% ══════════════════════════════════════════════════════════════════════
+
+Substrate Scanning is rapid adversarial computational auditing that produces
+strategic intelligence by systematically eliminating approaches that cannot
+work. The cycle is: observation $\to$ overclaim $\to$ quantitative
+verification $\to$ correction $\to$ audited result.
+
+In this paper, the cycle executed 7~times. Each overclaim was produced by the
+same failure mode: a partial correspondence was generalized before
+verification of the boundary conditions. Each correction was triggered by a
+specific quantitative test: doubling~$N$ (killed $P(\infty)$), computing
+reference-independent exponents (killed $\alpha = -0.96$), the dual test
+(killed the channel bridge), the cone analysis (killed Poincar\'e
+convergence).
+
+The methodology's value is not in producing results but in the speed of
+elimination. Seven approaches that might take months to evaluate analytically
+were eliminated in a single computational session, each with quantitative
+evidence. The engine is the distillation of what survived.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Applications}
+\label{sec:applications}
+% ══════════════════════════════════════════════════════════════════════
+
+\subsection{BSD Verification}
+
+The engine generates 29 geometric features per $(\sigma, t)$ query for any
+elliptic curve $L$-function. A classifier trained on feature vectors near
+$s = 1$ for curves of known rank could predict rank for curves of unknown
+rank. The test is binary and falsifiable: does the $V(\sigma)$ profile near
+$s = 1$ discriminate rank~0 from rank $\ge 1$? Toy results (4~curves,
+$K=20$) show $V = -1.32$ for the rank-1 candidate vs.\
+$V \approx -1.00$ for rank-0 curves.
+
+\subsection{Optimal Prime Selection}
+
+The decomposition $\theta^* = f(b)\cdot\cos(\ln(p)\cdot\gamma)$ identifies
+which primes contribute most to detecting a specific zero. For numerical
+computation of $L$-function zeros, this reduces cost: 6 well-chosen primes
+give what 50 generic primes cannot (Connes' result as practical heuristic).
+
+\subsection{Cayley Graph Classification}
+
+The engine maps directly to Cayley graph spectra. Eigenvalues of the graph
+Laplacian are computed; the spectral gap is measured; the Ramanujan bound is
+checked. A classifier trained on geometric features could detect expander
+graphs without full diagonalization---useful in cryptography and network
+design.
+
+\subsection{Signal Integrity: S-Parameter Classification}
+
+The S-matrix $S(f)$ of a 4-port differential channel is a spectrum
+parametrized by frequency~$f$. The mixed-mode decomposition into $S_{dd}$
+(differential), $S_{cc}$ (common mode), and $S_{dc}$ (mode conversion) maps
+exactly to Canal~B, Canal~A, and cross-channel respectively. The motor
+generates 29~features from $S(f)$ in $0.58\,$ms per file, classifying
+channels as PASS/MARGINAL/FAIL at 1709 classifications/second. Validated on
+5~synthetic profiles: resonant channels, lossy channels, and high-crosstalk
+channels are correctly identified with diagnostic reasons. The channel
+orthogonality test quantifies mode conversion coupling---the signal integrity
+equivalent of ``shared algebra does not imply shared information.'' For
+production SI labs measuring 500 boards/day, this replaces manual
+S-parameter curve inspection with automated classification.
+
+\subsection{Rotating Machinery Fault Diagnosis}
+
+Vibration spectra $V(f)$ from accelerometers on rotating machinery have
+harmonic orders $n\times$ (analogous to primes), fault frequencies
+BPFO/BPFI/BSF (analogous to zeros of~$\zeta$), and an envelope of harmonic
+decay (analogous to $f(b)$). The sideband modulation pattern around fault
+frequencies is $\cos(\omega)$---the phase tuning. The motor generates
+29~features from the vibration spectrum at 1132 diagnoses/second ($0.88\,$ms
+per sample), classifying: normal, unbalance, misalignment, mechanical
+looseness, bearing outer/inner race defects, and gear mesh faults. Real-time
+at 50\,kHz sampling with 8192-point FFT windows ($0.16\,$s). Severity
+progression is tracked: a developing bearing defect is detected consistently
+from $\text{SNR}=60\,$dB through $\text{SNR}=20\,$dB as the number of
+non-synchronous peaks grows.
+
+\subsection{Physical Cavity Optimization}
+
+The eigenvalues of the Laplacian on a 2D cavity are the resonant
+frequencies---directly analogous to zeros of~$\zeta$. Weyl's law is the
+analogue of the zero density estimates. The spectral gap determines the
+quality factor (antenna), the evenness of frequency response (acoustics), or
+the mode isolation (laser). Tested on 8~cavity shapes (circle, ellipse,
+rectangle, stadium, parabolic, L-shape): the motor correctly ranks parabolic
+as optimal for antenna (high~$Q$), stadium for acoustic rooms (uniform
+spacing), ellipse for laser cavities (large gap), and stadium for quantum
+billiards (high level repulsion, confirming the Bunimovich stadium as the
+classical chaotic cavity). Cross-domain comparison shows the ellipse has
+level spacing ratio $\langle r\rangle = 0.53$, closest to GUE ($0.536$) and
+to $\zeta$ zeros ($0.581$)---a numerical echo of the Montgomery--Odlyzko
+conjecture. Estimated computational savings: factor ${\sim}150\times$ versus
+full diagonalization when sweeping $10^4$ candidate geometries.
+
+\subsection{Colorimetry and Spectral Compression}
+
+A visible spectrum $S(\lambda)$ sampled at 41~points (380--780\,nm, 10\,nm
+intervals) is compressed to 3~values by CIE~XYZ, losing
+metamer-distinguishing information. The engine compresses to 29~features
+preserving spectral structure the eye discards: peak positions, bandwidth,
+spectral entropy, purity, and an effective metamerism dimension. Validated on
+11~synthetic spectra (pure R/G/B, daylight, incandescent, fluorescent, LED
+white, ruby, emerald, and two designed metamer pairs). The metamer pair test
+confirms that feature distance ($52.8$) exceeds XYZ distance ($26.6$) by a
+factor of $2.0\times$---the features detect differences that XYZ discards.
+Throughput: 1677 spectra/second ($0.6\,$ms). Standalone engine:
+\texttt{colorimetry\_engine.py}.
+
+\subsection{Wavelet 3D Representations and World Models}
+
+Wavelets 3D decompose volumetric data into 8~subbands per level, separating
+surfaces (curvelets), filaments (ridgelets), and points (isotropic wavelets)
+at each scale. The motor generates 29~features per subband, producing a
+tensor of geometric descriptors for the entire volume. Current state of the
+art (WaveFormer, MICCAI 2025~\cite{WaveFormer2025}; WDM,
+2024~\cite{WDM2024}) uses wavelets 3D as compression layers inside neural
+networks---the wavelet is a computational tool, not a representation. The
+gap: no existing work uses wavelets 3D as a deterministic geometric feature
+generator for world models. The motor fills this gap by producing
+interpretable, deterministic spectral coordinates from volumetric data before
+any learning occurs. Applications include: 3D industrial CT (defect
+classification by topological type---pore vs.\ crack vs.\ inclusion),
+turbulence diagnosis via wavelet scale decomposition (the Kolmogorov cascade
+is the ``Euler product'' of the flow), seismic interpretation (faults,
+channels, and domes as geometric primitives), and 4D flow MRI (vortex
+detection as ``zeros'' of the vorticity field). The motor's constraint---the
+system must have a linear operator with discrete spectrum---is satisfied by
+wavelets, which linearize multi-scale structure by construction.
+
+\subsection{General Graph Analysis}
+
+The Laplacian $L = D - A$ of any graph has discrete spectrum. The engine
+computes 29~features including algebraic connectivity ($\lambda_1$), spectral
+gap, level repulsion, partition balance via the Fiedler vector, effective
+resistance, and hub dominance. Validated on 9~graph configurations:
+Erd\H{o}s--R\'enyi sparse and dense (correctly classified as EXPANDER at
+high density), Barab\'asi--Albert (SCALE-FREE, FRAGILE), Watts--Strogatz
+(REGULAR), stochastic block model (MULTI-COMMUNITY), star, path, grid, and a
+synthetic bot farm. Bot farm vs.\ organic network separates on 12~features
+with diff $> 0.3$---the strongest being health score ($1.36$ separation),
+max eigengap position ($1.11$), and small-world indicator ($0.77$). Critical
+node detection via Fiedler vector identifies supply chain vulnerabilities and
+network bottlenecks. Throughput: 833 graphs/second at $N=100$, $80\,$ms at
+$N=500$.
+
+\subsection{Abstract Syntax Tree Analysis}
+
+A program's AST is a tree, a tree is a graph, and the engine applies
+directly. Python source code is parsed to AST via the standard \texttt{ast}
+module, converted to a labeled graph (nodes = operations, edges =
+parent-child), and the 29~graph spectral features are extracted. 15
+code-specific features are added: depth, branching, type entropy, control
+flow ratio, and function ratio, yielding 44~features per source file.
+Validated on 7~code samples ranging from clean functions to deeply nested,
+spaghetti, obfuscated, and well-structured code. Clone detection correctly
+identifies fibonacci/clone\_fibonacci as structurally identical (similarity
+$= 1.000$). Classification detects: DEEP-NESTING (depth $= 14$), MONOLITHIC
+(0 functions in 122~nodes), and WELL-MODULAR patterns. Critical AST nodes
+identify refactoring targets. Current limitation: the raw spectral similarity
+is too coarse for tree discrimination---all trees have similar Laplacian
+shape. Normalization by size and relative eigenvalue ratios (analogous to
+$\theta^*/f(b)$) is the known fix. Throughput: 139 analyses/second.
+
+\subsection{Materials Design via Phonon Spectra}
+
+The dynamical matrix $D(q)$ of a crystal has eigenvalues $\omega^2(q)$---the
+phonon frequencies. The engine generates 29~features from the phonon spectrum
+of a 1D chain model: band gap, group velocity, Debye temperature proxy,
+thermal conductivity proxy, optical branch flatness (rattler modes), and
+level spacing statistics. Validated on 12~materials ranging from monatomic
+metals (Cu, Fe, Al) to diatomic semiconductors (NaCl, GaAs, SiC, PbTe),
+polymers, perovskites, and clathrates (skutterudite proxy). The engine
+correctly classifies SiC as SEMICONDUCTOR + STIFF (high gap, high
+$v_\text{sound}$), PbTe and BiTe as thermoelectric candidates (low~$\kappa$,
+flat optical branches), and polymer-like chains as INSULATOR (large gap from
+bond alternation). Thermoelectric screening ranks materials by a $ZT$ proxy
+$= (\text{gap} + 0.1)\times(\text{flatness} + 0.1)/(\kappa + 0.1)$,
+correctly placing clathrates and PbTe-like materials at the top. Inverse
+design: 29,241 compositions swept in 32~seconds ($905\,$/s), finding the
+optimal mass/spring combination for a target spectrum. The cross-domain
+mapping closes: wavevector~$q$ is~$t$, phonon frequencies are zeros, the
+band gap is the zero-free region, and the Bloch phase $e^{-iqa}$ is
+$\cos(\ln(p)\cdot\gamma)$.
+
+\subsection{3D Wavelet Subband Analysis}
+
+A 3D discrete wavelet transform (Haar, manually implemented) decomposes
+volumetric data into 8~subbands per level across 3~levels. The engine
+generates 29~features from subband energies, kurtosis, entropy, sparsity,
+anisotropy per level, directional energy decomposition (edge/cross/corner),
+scale self-similarity, and spectral centroid. Validated on 6~synthetic
+volumes: sphere, cylinder, two spheres (multi-scale), Gaussian noise,
+sphere$+$noise (denoising), and torus. The classifier correctly separates
+STRUCTURED from NOISY (kurtosis $+$ sparsity) and identifies MULTI\_SCALE
+objects. Cylinder and torus are ambiguously classified as MULTI\_SCALE
+because they possess two inherent length scales; this ambiguity is genuine,
+not a failure. Throughput: 50 volumes/second at $32^3$. The cross-domain
+mapping: subbands are primes, subband energy is $p^{-\sigma}$, energy decay
+across levels is $f(b)$, and anisotropy per level is
+$\cos(\ln(p)\cdot\gamma)$.
+
+\subsection{Turbulence Cascade Classification}
+
+Multi-level 1D Haar DWT decomposes velocity signals into per-scale energy
+and kurtosis profiles. The engine generates 29~features: cascade energy
+ratios, K41 deviation (theoretical $2^{5/3}$ ratio), kurtosis growth rate
+across scales, spectral flatness, cross-scale magnitude correlation, and
+self-similarity. Validated on 5~synthetic regimes: laminar (sinusoidal),
+Kolmogorov ($k^{-5/3}$ filtered noise), intermittent (Kolmogorov $+$ $5\times$
+bursts), white noise (broadband), and tonal (machine-like harmonics). The
+classifier achieves 5/5 correct using kurtosis sign (sub-Gaussian for
+sinusoids), burst detection (extreme kurtosis for intermittency), and
+spectral slope (negative for broadband). Limitation: Haar has poor frequency
+resolution; the K41 cascade ratio is not recovered cleanly. Real turbulence
+analysis requires Daubechies or Morlet wavelets. Throughput: 476
+signals/second at 4096~samples. The cross-domain mapping: wavelet scales are
+primes, $E(j)$ is $p^{-\sigma}$, cascade ratio is $f(b)$, and kurtosis per
+scale is $\cos(\ln(p)\cdot\gamma)$.
+
+\subsection{Image Spectral Analysis}
+
+2D FFT with azimuthal averaging yields a radial power spectrum $P(f)$ from
+grayscale images. The engine generates 29~features: spectral slope (natural
+images follow $1/f^2$, per Field 1987), band energies, peak detection,
+angular isotropy, spectral centroid, and forgery anomaly scoring. A forgery
+detection module compares local vs.\ global spectral slope across
+$16\times 16$ blocks to identify pasted regions. Validated on 6~synthetic
+images: white noise (slope $\approx 0$), natural-like (slope $\approx -2$),
+periodic texture, step edge, noisy natural, and forged (natural $+$ pasted
+periodic block). Classifier: 6/6 correct. The forged image is correctly
+identified as TEXTURED at the global level because the pasted periodic block
+injects spectral peaks. Limitation: $64\times 64$ pixels; real forensics
+needs megapixel images with multi-scale block analysis. Throughput: 816
+images/second. The cross-domain mapping: spatial frequency is~$t$, spectral
+peaks are zeros, $1/f^2$ decay is $f(b)$, and angular sector distribution is
+$\cos(\ln(p)\cdot\gamma)$.
+
+\subsection{Spectral Pathfinding}
+
+Building on \texttt{graph\_engine.py} (\S7.9), this engine adds
+pathfinding-specific features: spectral coordinates from Laplacian
+eigenvectors, effective resistance via pseudoinverse, BFS vs.\ spectral
+distance rank correlation, and algorithm recommendation. The engine generates
+29~features. Validated on 5~graph types: $10\times 10$ grid
+(A\_STAR\_SPECTRAL, rank correlation $0.71$), Erd\H{o}s--R\'enyi 100-node
+(BFS, well-connected), bottleneck SBM (BRIDGE\_FIRST, high eigengap),
+Barab\'asi--Albert (ROUTE\_HUBS, scale-free), and 50-node path
+(A\_STAR\_SPECTRAL). The spectral heuristic is most valuable for graphs with
+bottleneck structure where eigenvector embedding reveals global geometry that
+BFS cannot see. For regular/expander graphs, BFS is already optimal.
+Throughput: 22 graphs/second at $N=100$. The cross-domain mapping: node
+index is~$t$, critical nodes (Fiedler) are zeros, spectral coordinates are
+the torus embedding, and effective resistance is $f(b)$.
+
+\subsection{Elliptic Curve Cryptographic Auditing}
+
+For elliptic curves $y^2 = x^3 + ax + b$ over $\mathbb{F}_p$, brute-force
+point counting gives $\#E(\mathbb{F}_p)$ and $a_p = p + 1 - \#E$. The
+engine generates 29~features from group order factorization (Canal~A: largest
+prime factor ratio, smoothness, cofactor), embedding degree (Cross:
+MOV/Frey--R\"uck vulnerability), Frobenius eigenvalue structure, anomalous
+flag ($\#E = p$), and a composite security score. Validated on 5~curves:
+secure ($y^2 = x^3 + 3x + 2$ over $\mathbb{F}_{127}$, prime order~139,
+$\text{emb}_k = 69$), Pohlig--Hellman (16-smooth order), anomalous
+($\#E = p$), MOV-weak (supersingular, $\text{emb}_k = 2$), and
+supersingular ($a_p = 0$). Classifier: 5/5 correct, with
+anomalous/MOV/supersingular correctly flagged as WEAK with multiple issues.
+Limitation: brute-force counting is $O(p^2)$, limiting~$p$ to ${\sim}500$.
+Real cryptographic curves use $p > 2^{200}$. The cross-domain mapping: group
+order is the spectral gap, factorization structure is Canal~A, embedding
+degree is the Ramanujan bound, and $a_p/(2\sqrt{p})$ is
+$\cos(\ln(p)\cdot\gamma)$.
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Open Questions}
+\label{sec:open}
+% ══════════════════════════════════════════════════════════════════════
+
+Note: \S\S7.9--7.11 were validated after the initial draft, confirming
+zero-change transfer.
+
+\begin{enumerate}[label=(\alph*)]
+\item Does the $R^2$ of the factored form
+  $\theta^* = f(b)\cdot\cos(\omega)$ improve with the Weil quadratic form as
+  loss instead of the log-derivative? If $R^2 \to 1$, the decomposition is
+  exact and $f(b)\cdot\cos(\omega)$ is the prolate eigenvector in closed
+  form.
+
+\item Is the third axis ($\cos(\ln(p)\cdot\gamma)$) sufficient, or does a
+  fourth axis emerge at higher~$K$? The residual after $A+B+C$ projection is
+  $55\%$ of norm at $K=30$. A neural network with more capacity might reduce
+  this, or it might be irreducible noise.
+
+\item Does the $V(\sigma)$ profile at $s = 1$ discriminate elliptic curve
+  rank at scale? The toy (4~curves, $K=20$) is suggestive but far from
+  conclusive. LMFDB provides thousands of curves with certified rank.
+
+\item Can the harmonicity of $V(\sigma,t)$ be improved by using the Weil
+  form instead of the log-derivative? The $0.07\%$ residual may be inherent
+  to the partial product or may be reducible with better operators.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Deliverables}
+\label{sec:deliverables}
+% ══════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[label=(\alph*)]
+\item \texttt{geometric\_engine.py} --- self-contained Python engine
+  (numpy/scipy only), 8~modules, 29~features, ${\sim}8\,$ms per query.
+  Supports $\zeta(s)$, $L(s,\chi)$, $L(s,E)$ with \texttt{EllipticCurveL}
+  class. AGPL-3.0.
+\item \texttt{sparam\_engine.py} --- S-parameter spectral engine (1709/s).
+\item \texttt{motor\_diagnosis.py} --- vibration fault diagnosis (1132/s).
+\item \texttt{graph\_engine.py} --- general graph spectral analysis
+  (833/s at $N=100$).
+\item \texttt{ast\_engine.py} --- Python AST spectral analysis,
+  $29 + 15 = 44$ features (139/s).
+\item \texttt{cavity\_engine.py} --- physical cavity optimization,
+  8~shapes, application scoring (20/s).
+\item \texttt{phonon\_engine.py} --- 1D chain phonon spectra, 12~materials,
+  thermoelectric screening (478/s).
+\item \texttt{colorimetry\_engine.py} --- visible spectrum analysis, metamer
+  detection, $2\times$ XYZ discrimination (1677/s).
+\item \texttt{wavelet\_3d\_engine.py} --- 3D Haar DWT, 6~synthetic volumes
+  at $32^3$, structural classification (50/s).
+\item \texttt{turbulence\_engine.py} --- 1D Haar DWT, 5~turbulence regimes,
+  cascade analysis (476/s).
+\item \texttt{image\_spectral\_engine.py} --- 2D FFT radial spectrum,
+  forgery detection, 6~image types (816/s).
+\item \texttt{pathfinding\_engine.py} --- spectral graph pathfinding,
+  algorithm recommendation, builds on \texttt{graph\_engine} (22/s at
+  $N=100$).
+\item \texttt{crypto\_curve\_engine.py} --- elliptic curve security audit
+  over $\mathbb{F}_p$, 5~vulnerability classes (274/s at $p=101$).
+\end{enumerate}
+
+All engines share the same 29-feature core architecture.
+
+Additional deliverables:
+\begin{enumerate}[resume,label=(\roman*)]
+\item \texttt{envelope\_pipeline.py} (v1) and \texttt{envelope\_v2.py} ---
+  optimization pipelines for envelope weights. L-BFGS and neural network
+  variants.
+\item 17 interactive HTML visualizations (Three.js r128): toroidal
+  embeddings, torus modes, operators, landscapes, spectra.
+\item \texttt{dual\_role\_f\_v3.docx} --- technical report on the three
+  scales, $f(b)$, and Poincar\'e compactification, with all 7~overclaims
+  documented and corrected.
+\item \texttt{class\_number\_report.docx} --- the identity
+  $S - k/2 = -h(-p)/2$, route of discovery, and 961-prime verification.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+% ══════════════════════════════════════════════════════════════════════
+
+The engine is the product; the results are the byproducts. No individual
+result survived as mathematical novelty against the existing literature. What
+survived is a methodology that eliminates impossible approaches at visual
+speed, a decomposition that separates infrastructure from signal in any
+spectrum, and a modular tool that generates geometric parameters without
+statistical assumptions. The architecture transfers with zero code changes
+from $\zeta(s)$ to elliptic curves, Cayley graphs, differential
+S-parameters, vibration spectra, physical cavities, and visible-light
+spectroscopy---because the spectrum is the spectrum.
+
+The central finding, confirmed by three independent tests across two
+$L$-function families, is that the arithmetic structure of $p-1$ is
+orthogonal to the spectral structure of the Euler product phases. Shared
+algebra does not imply shared information. The operator
+$f(b) = b/(b+1)$ acts identically in both channels but transports
+information in only one. This orthogonality constrains which mathematical
+structures can and cannot contribute to the detection of zeta zeros, and may
+inform the design of future operators.
+
+The engine does not prove theorems, replace domain physics, predict temporal
+evolution, or handle strongly nonlinear systems without wavelet
+linearization. It generates features, not demonstrations. Its value is in
+filtering: generating cheap geometric coordinates that concentrate expensive
+computation on the few candidates that matter.
+
+The phrase that closes the arc: $t$ parametrises the critical line.
+Everything else is scaffolding.
+\begin{equation*}
+  p^{-s} = p^{-\sigma} \cdot e^{-i\ln(p)\cdot t}
+\end{equation*}
+This equation is a fact, not a choice. $p^{-\sigma}$ is the amplitude.
+$e^{-i\omega t}$ is the phase. The zeros are the values of~$t$ where all
+phases conspire. $f(b)$ organises the amplitude. $\cos(\omega)$ organises
+the phase. Canal~A is orthogonal to both. Everything in this paper---the
+embedding, the three scales, the potential, the 16~domains, the motor---is
+scaffolding around this single factorisation.
+
+A note on democratisation. The engine lowers the barrier of access: anyone
+with Python and a browser can explore~$\zeta$, diagnose a turbine, or screen
+a material. What it does not lower is the barrier of judgement. The
+7~overclaims in~\S0 were produced by the same tool that produced the
+surviving results. Detecting them required domain knowledge the tool does not
+have. Accessible tools without accessible scepticism produce false
+confidence. The real democratisation in this paper is not the motor---it
+is~\S0. The errata-first protocol teaches that the tool fails, when it
+fails, and how to detect the failure. \emph{Democratising scepticism is
+worth more than democratising computation.}
+
+
+% ══════════════════════════════════════════════════════════════════════
+% BIBLIOGRAPHY
+% ══════════════════════════════════════════════════════════════════════
+\begin{thebibliography}{9}
+
+\bibitem{Connes2026}
+A.~Connes,
+\textit{Spectral truncations of the Bost--Connes system and the prolate
+operator},
+arXiv:2602.04022, February 2026.
+
+\bibitem{Conrad2005}
+K.~Conrad,
+\textit{Partial Euler products on the critical line},
+Canadian J.\ Math.\ \textbf{57} (2005), no.~2, 267--297.
+
+\bibitem{GuthMaynard2024}
+L.~Guth and J.~Maynard,
+\textit{New large value estimates for Dirichlet polynomials},
+2024, accepted by Ann.\ of Math.\ (2025).
+
+\bibitem{WaveFormer2025}
+Al~Hasan, M.\,M., Zaman, M., Jawad, A., Santamaria-Pang, A.,
+Lee, H.\,H., Tarapov, I., See, K., Imran, M.\,S., Roy, A.,
+Pourmohammadi~Fallah, Y., Asadizanjani, N., and Forghani, R.
+WaveFormer: A 3D Transformer with Wavelet-Driven Feature
+Representation for Efficient Medical Image Segmentation.
+In \textit{MICCAI 2025}, LNCS 15963, Springer, 2026.
+\texttt{arXiv:2503.23764}.
+
+\bibitem{WDM2024}
+Friedrich, P., Wolleb, J., Bieder, F., Durrer, A., and Cattin, P.\,C.
+WDM: 3D Wavelet Diffusion Models for High-Resolution Medical
+Image Synthesis.
+In \textit{DGM4MICCAI 2024}, LNCS 15224, pp.\ 11--21, Springer, 2025.
+\texttt{arXiv:2402.19043}.
+\texttt{doi:10.1007/978-3-031-72744-3\_2}.
+
+\end{thebibliography}
+
+\end{document}

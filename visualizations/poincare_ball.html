@@ -1,0 +1,542 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compactificación de Poincaré · Ceros en ∂B³</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#020208;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:grab;}
+body:active{cursor:grabbing;}
+canvas#mc{display:block;position:fixed;top:0;left:0;z-index:0;}
+
+#title-bar{position:fixed;top:0;left:0;right:0;padding:10px 18px 6px;background:linear-gradient(180deg,rgba(2,2,8,0.97) 0%,rgba(2,2,8,0) 100%);z-index:10;pointer-events:none;}
+#title-bar h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(12px,2vw,19px);color:#eeeef4;}
+#title-bar .sub{font-size:clamp(7px,0.85vw,9px);font-weight:300;letter-spacing:0.2em;color:#484858;margin-top:2px;text-transform:uppercase;}
+
+#n-strip{position:fixed;top:50px;left:0;right:0;padding:6px 18px;z-index:25;display:flex;align-items:center;gap:12px;background:rgba(2,2,8,0.9);border-bottom:1px solid rgba(140,160,220,0.05);}
+#n-strip .nl{font-size:10px;color:#7080a0;white-space:nowrap;min-width:140px;}
+#n-strip .nl .nv{color:#80b0ff;font-weight:500;font-size:14px;}
+#n-strip input[type="range"]{flex:1;-webkit-appearance:none;height:5px;background:linear-gradient(90deg,rgba(80,140,255,0.2),rgba(180,100,255,0.2));border-radius:3px;outline:none;cursor:pointer;}
+#n-strip input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#80b0ff,#b080ff);border:2px solid #06061a;cursor:pointer;}
+
+#bot{position:fixed;bottom:0;left:0;right:0;padding:6px 18px 10px;background:rgba(2,2,8,0.95);border-top:1px solid rgba(100,120,180,0.04);z-index:30;display:flex;align-items:center;gap:8px;}
+.sb{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid rgba(120,140,200,0.18);background:rgba(120,140,200,0.03);color:#8090b0;cursor:pointer;transition:all 0.2s;}
+.sb:hover{background:rgba(120,140,200,0.1);}
+.sb.on{background:rgba(100,120,200,0.2);border-color:rgba(120,140,200,0.3);color:#b0c0e0;}
+.blab{font-size:7.5px;color:#404060;}
+
+#panel{position:fixed;top:84px;right:10px;width:clamp(195px,17vw,240px);background:rgba(4,4,14,0.78);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(120,140,200,0.07);border-radius:9px;padding:10px 12px 8px;z-index:20;max-height:calc(100vh - 140px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(120,140,200,0.1) transparent;}
+.st{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:600;color:#7888a8;margin-bottom:5px;}
+.cg{margin-bottom:6px;}
+.cg label{display:flex;justify-content:space-between;font-size:8px;color:#404860;margin-bottom:2px;}
+.cg label .v{color:#7888b0;font-weight:500;font-size:8.5px;}
+#panel input[type="range"]{-webkit-appearance:none;width:100%;height:2px;background:rgba(120,140,200,0.08);border-radius:2px;outline:none;cursor:pointer;}
+#panel input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:#6878a0;border:2px solid #080818;cursor:pointer;}
+.dv{height:1px;background:rgba(120,140,200,0.04);margin:6px 0;}
+.tr{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;}
+.tb{font-family:'IBM Plex Mono',monospace;font-size:7px;padding:2px 5px;border-radius:3px;border:1px solid rgba(120,140,200,0.12);background:rgba(120,140,200,0.02);color:#506078;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.tb.on{background:rgba(120,140,200,0.12);color:#a0b0d0;border-color:rgba(120,140,200,0.25);}
+.zl{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+.ze{display:flex;align-items:center;gap:5px;font-size:8px;color:#405060;cursor:pointer;padding:2px 5px;border-radius:3px;border:1px solid transparent;transition:all 0.15s;user-select:none;}
+.ze:hover{border-color:rgba(120,140,200,0.08);}
+.ze.on{color:#a0b8d8;border-color:rgba(120,140,200,0.1);background:rgba(120,140,200,0.02);}
+.ze .zd{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+#info{position:fixed;top:84px;left:12px;background:rgba(4,4,14,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(120,140,200,0.06);border-radius:8px;padding:9px 11px;z-index:20;font-size:8px;line-height:1.7;color:#506878;max-width:clamp(190px,20vw,260px);}
+.it{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:600;margin-bottom:3px;}
+.ir{display:flex;justify-content:space-between;gap:6px;padding:1px 0;font-size:7.5px;}
+.ir .il{color:#405060;}
+.ir .iv{font-weight:500;text-align:right;}
+.c1{color:#a06060;}
+.c2{color:#60a0c0;}
+.ceq{color:#b0a060;font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;margin:6px 0 3px;}
+
+@media(max-width:700px){
+  #panel{top:auto;bottom:100px;right:6px;left:6px;width:auto;max-height:28vh;}
+  #info{display:none;}
+}
+</style>
+</head>
+<body>
+<canvas id="mc"></canvas>
+
+<div id="title-bar">
+  <h1>Compactificación de Poincaré · Ceros de ζ en ∂B³</h1>
+  <div class="sub">x → x/(1+|x|) = f(|x|)·x̂ · Los ceros viven en la frontera</div>
+</div>
+
+<div id="n-strip">
+  <div class="nl">N: <span class="nv" id="v-N">2</span></div>
+  <input type="range" id="s-N" min="2" max="2000" value="2" step="1">
+</div>
+
+<div id="panel">
+  <div class="st">Ceros</div>
+  <div class="zl" id="ztog"></div>
+  <div class="dv"></div>
+  <div class="st">Parámetros</div>
+  <div class="cg"><label>R mayor<span class="v" id="v-R">1.50</span></label><input type="range" id="s-R" min="0.3" max="3.5" value="1.5" step="0.01"></div>
+  <div class="cg"><label>σ<span class="v" id="v-s">0.50</span></label><input type="range" id="s-s" min="0.10" max="0.90" value="0.50" step="0.01"></div>
+  <div class="dv"></div>
+  <div class="st">Vista</div>
+  <div class="tr">
+    <button class="tb on" id="b-sphere">Esfera ∂B³</button>
+    <button class="tb on" id="b-glow">Glow</button>
+    <button class="tb on" id="b-limits">Puntos límite</button>
+    <button class="tb on" id="b-raw">Estelas ℝ³</button>
+    <button class="tb on" id="b-compact">Estelas B³</button>
+    <button class="tb on" id="b-bnd">Estelas ∂B³</button>
+    <button class="tb" id="b-v2col">Color v₂(p−1)</button>
+    <button class="tb" id="b-axes">Ejes</button>
+  </div>
+  <div id="v2legend" style="display:none;margin-top:4px;font-size:7px;line-height:1.6;padding:5px 8px;background:rgba(20,25,40,0.6);border-radius:4px;border:1px solid rgba(120,140,200,0.08);">
+    <span style="color:#cc3333">● v₂=1</span> &nbsp;
+    <span style="color:#40a0a8">● v₂=2</span> &nbsp;
+    <span style="color:#c89020">● v₂=3-4</span> &nbsp;
+    <span style="color:#40a850">● v₂≥5</span>
+    <div style="color:#406070;margin-top:2px;">Si ortogonal: colores mezclados sin patrón</div>
+  </div>
+</div>
+
+<div id="info">
+  <div class="it" style="color:#7898c0;">Compactificación de Poincaré</div>
+  <div class="ceq">x → x / (1 + |x|)</div>
+  <div style="font-size:7.5px;color:#405868;margin-bottom:6px;">
+    En 1D: b → b/(1+b) = f(b)<br>
+    El mapa f(b) que contrae la espiral<br>
+    paso a paso ES la compactificación<br>
+    que hace finito el drift infinito.
+  </div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">|P(N)| en ℝ³</span><span class="iv c1" id="rd-rraw">—</span></div>
+  <div class="ir"><span class="il">|P̃(N)| en B³</span><span class="iv c2" id="rd-rball">—</span></div>
+  <div class="ir"><span class="il">dist a ∂B³</span><span class="iv c2" id="rd-dbnd">—</span></div>
+  <div class="ir"><span class="il">f(|P|) = |P|/(1+|P|)</span><span class="iv" style="color:#b0a060;" id="rd-fb">—</span></div>
+  <div class="ir"><span class="il">v₂(p_N − 1)</span><span class="iv" style="color:#6888a8;" id="rd-v2">—</span></div>
+  <div class="dv"></div>
+  <div style="font-size:7px;color:#384050;">
+    ℝ³ interior ↔ producto parcial<br>
+    ∂B³ ↔ continuación analítica<br>
+    Los ceros existen en ∂B³<br>
+    Estelas en ∂B³: evolución del<br>
+    punto límite — su migración<br>
+    muestra que P(∞) no es fijo<br>
+    pero converge en la frontera
+  </div>
+  <div class="dv"></div>
+  <div style="font-size:7px;color:#384050;">
+    <span style="color:#6888a8;">Color v₂(p−1):</span> test visual<br>
+    de ortogonalidad canal A↔B.<br>
+    Si los colores se mezclan sin<br>
+    patrón → canales independientes.<br>
+    Si se agrupan → señal cross.
+  </div>
+</div>
+
+<div id="bot">
+  <button class="sb" id="b-play">▶ Crecer N</button>
+  <button class="sb" id="b-reset">↺</button>
+  <span class="blab">vel.</span>
+  <input type="range" id="s-sp" min="0.5" max="60" value="8" step="0.5" style="width:55px;">
+</div>
+
+<script>
+(function(){
+function sieve(n){const s=new Uint8Array(n+1);s[0]=s[1]=1;for(let i=2;i*i<=n;i++)if(!s[i])for(let j=i*i;j<=n;j+=i)s[j]=1;const p=[];for(let i=2;i<=n;i++)if(!s[i])p.push(i);return p;}
+const P=sieve(18000).slice(0,2002);
+const LN=new Float64Array(P.length);for(let i=0;i<P.length;i++)LN[i]=Math.log(P[i]);
+const ZEROS=[14.134725,21.022040,25.010858,30.424876,32.935062,37.586178,40.918719,43.327073,48.005151,49.773832];
+const ZHUE=[0.58,0.62,0.66,0.70,0.42,0.46,0.50,0.54,0.35,0.38];
+const PI=Math.PI;
+
+// Precompute v2(p-1) for all primes
+function v2(n){if(n===0)return 0;let c=0;while((n&1)===0){c++;n>>=1;}return c;}
+const V2=new Uint8Array(P.length);
+for(let i=0;i<P.length;i++)V2[i]=v2(P[i]-1);
+const V2_MAX=8; // for color mapping
+
+// v2 color ramp: v2=1 red → v2=2 cyan → v2=3+ yellow → v2=6+ green
+function v2Color(val){
+  const t=Math.min(val,V2_MAX)/V2_MAX;
+  const c=new THREE.Color();
+  if(val<=1) c.setHSL(0.0,0.8,0.45);      // red
+  else if(val===2) c.setHSL(0.52,0.7,0.45); // cyan
+  else if(val<=4) c.setHSL(0.14,0.8,0.5);   // orange-yellow
+  else c.setHSL(0.33,0.7,0.45);             // green
+  return c;
+}
+
+const S={N:2,R:1.5,sig:0.5,showSphere:true,glow:true,showLimits:true,showRaw:true,showCompact:true,showBnd:true,colorV2:false,axes:false,
+  activeZ:Array(10).fill(false),playing:false,speed:8};
+for(let i=0;i<6;i++)S.activeZ[i]=true;
+
+const mc=document.getElementById('mc');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x020208);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.01,200);
+const ren=new THREE.WebGLRenderer({canvas:mc,antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+
+// Orbit
+const O={tgt:new THREE.Vector3(0,0,0),sph:new THREE.Spherical(2.8,PI*0.4,PI*0.2),d:new THREE.Spherical(),sc:1,pan:new THREE.Vector3(),dr:false,pn:false,px:0,py:0,
+update(){if(!this.dr)this.d.theta-=0.0006;const f=0.08;this.sph.theta+=this.d.theta*(1-f);this.sph.phi+=this.d.phi*(1-f);this.sph.phi=Math.max(0.05,Math.min(PI-0.05,this.sph.phi));this.sph.radius*=this.sc;this.sph.radius=Math.max(0.5,Math.min(15,this.sph.radius));this.sc=1;this.tgt.add(this.pan);this.pan.multiplyScalar(1-f);this.d.theta*=(1-f);this.d.phi*=(1-f);cam.position.setFromSpherical(this.sph).add(this.tgt);cam.lookAt(this.tgt);}};
+const el=mc;let lTD=0;
+el.addEventListener('pointerdown',e=>{O.dr=true;O.pn=e.shiftKey||e.button===2;O.px=e.clientX;O.py=e.clientY;el.setPointerCapture(e.pointerId);});
+el.addEventListener('pointermove',e=>{if(!O.dr)return;const dx=e.clientX-O.px,dy=e.clientY-O.py;O.px=e.clientX;O.py=e.clientY;if(O.pn){const r=new THREE.Vector3().setFromMatrixColumn(cam.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(cam.matrix,1);O.pan.add(r.multiplyScalar(-dx*O.sph.radius*0.003)).add(u.multiplyScalar(dy*O.sph.radius*0.003));}else{O.d.theta-=dx*0.005;O.d.phi-=dy*0.005;}});
+el.addEventListener('pointerup',()=>{O.dr=false;});
+el.addEventListener('wheel',e=>{e.preventDefault();O.sc*=e.deltaY>0?1.06:0.94;},{passive:false});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+el.addEventListener('touchstart',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lTD=Math.sqrt(dx*dx+dy*dy);}},{passive:true});
+el.addEventListener('touchmove',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,dd=Math.sqrt(dx*dx+dy*dy);if(lTD>0)O.sc*=lTD/dd;lTD=dd;}},{passive:true});
+
+// Boundary sphere
+const sphereGeo=new THREE.SphereGeometry(1,64,48);
+const sphereMat=new THREE.MeshBasicMaterial({color:0x304060,wireframe:true,transparent:true,opacity:0.04});
+const sphereMesh=new THREE.Mesh(sphereGeo,sphereMat);
+scene.add(sphereMesh);
+
+// Solid inner sphere for depth reference
+const innerMat=new THREE.MeshBasicMaterial({color:0x0a0a18,transparent:true,opacity:0.3,side:THREE.BackSide});
+const innerMesh=new THREE.Mesh(new THREE.SphereGeometry(0.998,48,32),innerMat);
+scene.add(innerMesh);
+
+const axH=new THREE.AxesHelper(1.2);axH.visible=false;scene.add(axH);
+
+// Eval mixed torus with Kahan
+function evm(N,t,sig,R){
+  const w=new Float64Array(N);let ws=0,wc=0;
+  for(let k=0;k<N;k++){const v=Math.pow(P[k],-sig)*Math.pow(P[k+1],-sig);const wy=v-wc;const wt=ws+wy;wc=(wt-ws)-wy;ws=wt;w[k]=v;}
+  for(let k=0;k<N;k++)w[k]/=ws;
+  let sx=0,sxc=0,sy=0,syc=0,sz=0,szc=0;
+  for(let k=0;k<N;k++){
+    const rk=Math.pow(P[k],-sig),thA=LN[k]*t,thB=LN[k+1]*t;
+    const vx=w[k]*(R+rk*Math.cos(thA))*Math.cos(thB);
+    const vy=w[k]*(R+rk*Math.cos(thA))*Math.sin(thB);
+    const vz=w[k]*rk*Math.sin(thA);
+    {const y=vx-sxc;const t2=sx+y;sxc=(t2-sx)-y;sx=t2;}
+    {const y=vy-syc;const t2=sy+y;syc=(t2-sy)-y;sy=t2;}
+    {const y=vz-szc;const t2=sz+y;szc=(t2-sz)-y;sz=t2;}
+  }
+  return[sx,sy,sz];
+}
+
+// Poincaré compactification: x → x/(1+|x|) = f(|x|)·x̂
+function poincare(x,y,z){
+  const r=Math.sqrt(x*x+y*y+z*z);
+  if(r<1e-15) return[0,0,0];
+  const s=r/(1+r); // = f(r) = r/(r+1)
+  return[x*s/r, y*s/r, z*s/r];
+}
+
+// Cache
+const CMAX=2000;
+let cache={};
+let cacheValid=false;
+
+function buildCache(){
+  cache={};
+  for(let zi=0;zi<10;zi++){
+    if(!S.activeZ[zi])continue;
+    buildSingleCache(zi);
+  }
+  cacheValid=true;
+}
+
+function ensureCache(){
+  if(cacheValid) return;
+  for(let zi=0;zi<10;zi++){
+    if(!S.activeZ[zi])continue;
+    if(!cache[zi]) buildSingleCache(zi);
+  }
+  cacheValid=true;
+}
+
+function buildSingleCache(zi){
+  const raw=new Float64Array(CMAX*3);
+  const comp=new Float64Array(CMAX*3);
+  const bnd=new Float64Array(CMAX*3); // boundary projection trail
+  for(let n=0;n<CMAX;n++){
+    const p=evm(Math.max(n+1,2),ZEROS[zi],S.sig,S.R);
+    raw[n*3]=p[0];raw[n*3+1]=p[1];raw[n*3+2]=p[2];
+    const c=poincare(p[0],p[1],p[2]);
+    comp[n*3]=c[0];comp[n*3+1]=c[1];comp[n*3+2]=c[2];
+    // Project current compactified point to ∂B³ (normalize to unit sphere)
+    const cr=Math.sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2])||1e-15;
+    bnd[n*3]=c[0]/cr;bnd[n*3+1]=c[1]/cr;bnd[n*3+2]=c[2]/cr;
+  }
+  cache[zi]={raw,comp,bnd};
+}
+
+function invalidateCache(){cache={};cacheValid=false;}
+
+// Scene objects per zero
+const zObj=[];
+for(let zi=0;zi<10;zi++){
+  const hue=ZHUE[zi];
+  const c=new THREE.Color().setHSL(hue,0.6,0.5);
+  const cd=new THREE.Color().setHSL(hue,0.3,0.3);
+
+  // Raw trail (faint, in ℝ³ scaled down)
+  const rMat=new THREE.LineBasicMaterial({color:cd,transparent:true,opacity:0.15});
+  const rG=new THREE.BufferGeometry();const rL=new THREE.Line(rG,rMat);scene.add(rL);
+
+  // Compactified trail (bright, in B³)
+  const cMat=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.8});
+  const cG=new THREE.BufferGeometry();const cL=new THREE.Line(cG,cMat);scene.add(cL);
+
+  // Compactified trail with v2 vertex colors
+  const cV2Mat=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.85});
+  const cV2G=new THREE.BufferGeometry();const cV2L=new THREE.Line(cV2G,cV2Mat);cV2L.visible=false;scene.add(cV2L);
+
+  // Glow
+  const gMat=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.06});
+  const gG=new THREE.BufferGeometry();const gL=new THREE.Line(gG,gMat);gL.scale.set(1.008,1.008,1.008);scene.add(gL);
+
+  // Current point in B³
+  const eMat=new THREE.MeshBasicMaterial({color:c.clone().multiplyScalar(1.4),transparent:true,opacity:0.95});
+  const eGlMat=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.18});
+  const eM=new THREE.Mesh(new THREE.SphereGeometry(0.012,8,8),eMat);
+  const eGl=new THREE.Mesh(new THREE.SphereGeometry(0.03,6,6),eGlMat);
+  scene.add(eM);scene.add(eGl);
+
+  // Limit point on ∂B³ (where it would converge if P(∞) existed)
+  const lMat=new THREE.MeshBasicMaterial({color:c.clone().multiplyScalar(0.8),transparent:true,opacity:0.45});
+  const lGlMat=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.1});
+  const lM=new THREE.Mesh(new THREE.SphereGeometry(0.015,8,8),lMat);
+  const lGl=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,6),lGlMat);
+  scene.add(lM);scene.add(lGl);
+
+  // Radial line from current to boundary (the "gap")
+  const gapMat=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.15});
+  const gapG=new THREE.BufferGeometry();const gapL=new THREE.Line(gapG,gapMat);scene.add(gapL);
+
+  // Boundary evolution trail on ∂B³
+  const bMat=new THREE.LineBasicMaterial({color:c.clone().multiplyScalar(0.7),transparent:true,opacity:0.55});
+  const bG=new THREE.BufferGeometry();const bL=new THREE.Line(bG,bMat);scene.add(bL);
+  // Boundary glow
+  const bgMat=new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.06});
+  const bgG=new THREE.BufferGeometry();const bgL=new THREE.Line(bgG,bgMat);bgL.scale.set(1.003,1.003,1.003);scene.add(bgL);
+
+  zObj.push({rL,rG,cL,cG,cV2L,cV2G,gL,gG,eM,eGl,eMat,eGlMat,lM,lGl,lMat,lGlMat,gapL,gapG,gapMat,bL,bG,bMat,bgL,bgG,bgMat});
+}
+
+function rebuild(){
+  ensureCache();
+  const N=S.N;
+  // Scale factor for raw trails to fit visually
+  const rawScale=0.3;
+
+  for(let zi=0;zi<10;zi++){
+    const o=zObj[zi];
+    const active=S.activeZ[zi]&&cache[zi];
+    if(!active||N<2){
+      o.rL.visible=o.cL.visible=o.gL.visible=o.cV2L.visible=false;
+      o.eM.visible=o.eGl.visible=o.lM.visible=o.lGl.visible=o.gapL.visible=false;
+      o.bL.visible=o.bgL.visible=false;
+      continue;
+    }
+    const {raw,comp}=cache[zi];
+
+    // Raw trail (scaled to fit inside sphere for reference)
+    if(S.showRaw){
+      const rp=new Float32Array(N*3);
+      for(let i=0;i<N*3;i++)rp[i]=raw[i]*rawScale;
+      o.rG.dispose();o.rG=new THREE.BufferGeometry();
+      o.rG.setAttribute('position',new THREE.BufferAttribute(rp,3));
+      o.rL.geometry=o.rG;o.rL.visible=true;
+    }else o.rL.visible=false;
+
+    // Compactified trail
+    if(S.showCompact){
+      const cp=new Float32Array(N*3);
+      for(let i=0;i<N*3;i++)cp[i]=comp[i];
+
+      if(S.colorV2){
+        // Vertex-colored by v2(p_k - 1)
+        o.cL.visible=false;
+        const colors=new Float32Array(N*3);
+        for(let n=0;n<N;n++){
+          const pk=Math.max(n,1); // prime index for step n
+          const vc=v2Color(V2[pk]);
+          colors[n*3]=vc.r;colors[n*3+1]=vc.g;colors[n*3+2]=vc.b;
+        }
+        o.cV2G.dispose();o.cV2G=new THREE.BufferGeometry();
+        o.cV2G.setAttribute('position',new THREE.BufferAttribute(cp,3));
+        o.cV2G.setAttribute('color',new THREE.BufferAttribute(colors,3));
+        o.cV2L.geometry=o.cV2G;o.cV2L.visible=true;
+      }else{
+        // Uniform color
+        o.cV2L.visible=false;
+        o.cG.dispose();o.cG=new THREE.BufferGeometry();
+        o.cG.setAttribute('position',new THREE.BufferAttribute(cp,3));
+        o.cL.geometry=o.cG;o.cL.visible=true;
+      }
+
+      if(S.glow&&!S.colorV2){
+        o.gG.dispose();o.gG=new THREE.BufferGeometry();
+        o.gG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(cp),3));
+        o.gL.geometry=o.gG;o.gL.visible=true;
+      }else o.gL.visible=false;
+    }else{o.cL.visible=false;o.gL.visible=false;o.cV2L.visible=false;}
+
+    // Current point in B³
+    const cx=comp[(N-1)*3],cy=comp[(N-1)*3+1],cz=comp[(N-1)*3+2];
+    o.eM.position.set(cx,cy,cz);o.eGl.position.set(cx,cy,cz);
+    o.eM.visible=true;o.eGl.visible=true;
+
+    // Limit point: extrapolate direction from last ~50 steps of compactified trail
+    if(S.showLimits&&N>20){
+      const w=Math.min(50,N-5);
+      let dx=0,dy=0,dz=0;
+      for(let i=N-w;i<N-1;i++){
+        dx+=comp[(i+1)*3]-comp[i*3];
+        dy+=comp[(i+1)*3+1]-comp[i*3+1];
+        dz+=comp[(i+1)*3+2]-comp[i*3+2];
+      }
+      // Extrapolate to unit sphere
+      const lx=cx+dx*50, ly=cy+dy*50, lz=cz+dz*50;
+      const lr=Math.sqrt(lx*lx+ly*ly+lz*lz)||1e-15;
+      const bx=lx/lr, by=ly/lr, bz=lz/lr;
+      o.lM.position.set(bx,by,bz);o.lGl.position.set(bx,by,bz);
+      o.lM.visible=true;o.lGl.visible=true;
+
+      // Gap line
+      const gf=new Float32Array([cx,cy,cz,bx,by,bz]);
+      o.gapG.dispose();o.gapG=new THREE.BufferGeometry();
+      o.gapG.setAttribute('position',new THREE.BufferAttribute(gf,3));
+      o.gapL.geometry=o.gapG;o.gapL.visible=true;
+    }else{o.lM.visible=false;o.lGl.visible=false;o.gapL.visible=false;}
+
+    // Boundary evolution trail on ∂B³
+    if(S.showBnd&&N>5){
+      const {bnd}=cache[zi];
+      const step=N>500?3:N>200?2:1;
+      const pts=[];const bndCols=[];
+      for(let i=2;i<N;i+=step){
+        pts.push(bnd[i*3],bnd[i*3+1],bnd[i*3+2]);
+        if(S.colorV2){
+          const vc=v2Color(V2[Math.max(i,1)]);
+          bndCols.push(vc.r,vc.g,vc.b);
+        }
+      }
+      const bp=new Float32Array(pts);
+      o.bG.dispose();o.bG=new THREE.BufferGeometry();
+      o.bG.setAttribute('position',new THREE.BufferAttribute(bp,3));
+      if(S.colorV2){
+        o.bG.setAttribute('color',new THREE.BufferAttribute(new Float32Array(bndCols),3));
+        o.bMat.vertexColors=true;o.bMat.color.setHex(0xffffff);o.bMat.needsUpdate=true;
+      }else{
+        const hue=ZHUE[zi];
+        o.bMat.vertexColors=false;o.bMat.color.setHSL(hue,0.42,0.35);o.bMat.needsUpdate=true;
+      }
+      o.bL.geometry=o.bG;o.bL.visible=true;
+      if(S.glow&&!S.colorV2){
+        o.bgG.dispose();o.bgG=new THREE.BufferGeometry();
+        o.bgG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(bp),3));
+        o.bgL.geometry=o.bgG;o.bgL.visible=true;
+      }else o.bgL.visible=false;
+    }else{o.bL.visible=false;o.bgL.visible=false;}
+  }
+
+  // Sphere visibility
+  sphereMesh.visible=S.showSphere;
+  innerMesh.visible=S.showSphere;
+
+  updateInfo();
+}
+
+function updateInfo(){
+  const N=S.N;
+  let zi0=-1;for(let i=0;i<10;i++){if(S.activeZ[i]&&cache[i]){zi0=i;break;}}
+  if(zi0<0||N<2)return;
+  const {raw,comp}=cache[zi0];
+  const rx=raw[(N-1)*3],ry=raw[(N-1)*3+1],rz=raw[(N-1)*3+2];
+  const rr=Math.sqrt(rx*rx+ry*ry+rz*rz);
+  const cx=comp[(N-1)*3],cy=comp[(N-1)*3+1],cz=comp[(N-1)*3+2];
+  const cr=Math.sqrt(cx*cx+cy*cy+cz*cz);
+
+  document.getElementById('rd-rraw').textContent=rr.toFixed(4);
+  document.getElementById('rd-rball').textContent=cr.toFixed(6);
+  document.getElementById('rd-dbnd').textContent=(1-cr).toExponential(3);
+  document.getElementById('rd-fb').textContent=(rr/(1+rr)).toFixed(6);
+  document.getElementById('rd-v2').textContent=V2[Math.max(N-1,0)];
+}
+
+function pulse(t){
+  const p=0.5+0.5*Math.sin(t*2);
+  for(let zi=0;zi<10;zi++){
+    if(!S.activeZ[zi])continue;
+    const o=zObj[zi];
+    o.eGlMat.opacity=0.1+0.14*p;
+    const s=1+0.1*p;o.eGl.scale.set(s,s,s);
+    if(o.lGl.visible){o.lGlMat.opacity=0.06+0.08*p;const s2=1+0.15*p;o.lGl.scale.set(s2,s2,s2);}
+  }
+}
+
+// UI
+const $=id=>document.getElementById(id);
+
+function buildZtog(){
+  const c=$('ztog');c.innerHTML='';
+  for(let zi=0;zi<10;zi++){
+    const h=ZHUE[zi];
+    const d=document.createElement('div');
+    d.className='ze'+(S.activeZ[zi]?' on':'');
+    d.innerHTML=`<span class="zd" style="background:hsl(${(h*360).toFixed(0)},55%,45%)"></span>γ<sub>${zi+1}</sub>=${ZEROS[zi].toFixed(2)}`;
+    d.addEventListener('click',()=>{S.activeZ[zi]=!S.activeZ[zi];d.classList.toggle('on',S.activeZ[zi]);
+      if(S.activeZ[zi]&&!cache[zi])buildSingleCache(zi);rebuild();});
+    c.appendChild(d);
+  }
+}
+
+const sN=$('s-N'),vN=$('v-N');
+sN.addEventListener('input',()=>{S.N=parseInt(sN.value);vN.textContent=S.N;rebuild();});
+function wire(sId,vId,prop,fmt){$(sId).addEventListener('input',()=>{S[prop]=parseFloat($(sId).value);$(vId).textContent=fmt(S[prop]);invalidateCache();rebuild();});}
+wire('s-R','v-R','R',v=>v.toFixed(2));
+wire('s-s','v-s','sig',v=>v.toFixed(2));
+
+function tog(id,prop,cb){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('on',S[prop]);if(cb)cb();else rebuild();});}
+tog('b-sphere','showSphere');tog('b-glow','glow');tog('b-limits','showLimits');
+tog('b-raw','showRaw');tog('b-compact','showCompact');tog('b-bnd','showBnd');
+tog('b-axes','axes',()=>{axH.visible=S.axes;});
+$('b-v2col').addEventListener('click',()=>{
+  S.colorV2=!S.colorV2;
+  $('b-v2col').classList.toggle('on',S.colorV2);
+  $('v2legend').style.display=S.colorV2?'block':'none';
+  rebuild();
+});
+
+const bp=$('b-play');
+bp.addEventListener('click',()=>{S.playing=!S.playing;bp.textContent=S.playing?'⏸':'▶ Crecer N';bp.classList.toggle('on',S.playing);});
+$('b-reset').addEventListener('click',()=>{S.N=2;sN.value=2;vN.textContent='2';S.playing=false;bp.textContent='▶ Crecer N';bp.classList.remove('on');rebuild();});
+$('s-sp').addEventListener('input',()=>{S.speed=parseFloat($('s-sp').value);});
+
+let last=performance.now(),acc=0;
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=(now-last)*0.001;last=now;
+  if(S.playing){
+    acc+=dt*S.speed;
+    if(acc>=1){const st=Math.floor(acc);acc-=st;S.N=Math.min(2000,S.N+st);sN.value=S.N;vN.textContent=S.N;
+    if(S.N>=2000){S.playing=false;bp.textContent='▶ Crecer N';bp.classList.remove('on');}rebuild();}
+  }
+  pulse(now*0.001);
+  O.update();
+  ren.render(scene,cam);
+}
+
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+
+buildZtog();
+// Lazy cache
+ensureCache();
+rebuild();
+animate(performance.now());
+})();
+</script>
+</body>
+</html>

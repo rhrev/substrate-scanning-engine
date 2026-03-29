@@ -1,0 +1,669 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuatro Toros · Tres Modos · Ceros de ζ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#05050a;color:#dce0e8;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:grab;}
+  body:active{cursor:grabbing;}
+  canvas#mc{display:block;position:fixed;top:0;left:0;z-index:0;}
+
+  #title-bar{position:fixed;top:0;left:0;right:0;padding:11px 18px 7px;background:linear-gradient(180deg,rgba(5,5,10,0.96) 0%,rgba(5,5,10,0) 100%);z-index:10;pointer-events:none;}
+  #title-bar h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(11px,1.9vw,18px);letter-spacing:0.02em;color:#eeeef4;}
+  #title-bar .sub{font-family:'IBM Plex Mono',monospace;font-size:clamp(7px,0.85vw,9px);font-weight:300;letter-spacing:0.22em;color:#686878;margin-top:2px;text-transform:uppercase;}
+
+  /* Mode tabs */
+  #mode-tabs{position:fixed;top:56px;left:18px;z-index:25;display:flex;gap:4px;}
+  .mode-tab{
+    font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.06em;
+    padding:5px 12px;border-radius:5px 5px 0 0;
+    border:1px solid rgba(140,140,180,0.12);border-bottom:none;
+    background:rgba(8,8,16,0.5);color:#686880;cursor:pointer;transition:all 0.25s;
+  }
+  .mode-tab:hover{color:#9898b0;}
+  .mode-tab.active{background:rgba(12,12,24,0.85);color:#c0c0d8;border-color:rgba(140,140,180,0.25);}
+
+  /* dist plot */
+  #dist-plot{position:fixed;bottom:48px;left:0;right:0;height:55px;z-index:15;pointer-events:none;background:linear-gradient(0deg,rgba(5,5,10,0.45) 0%,rgba(5,5,10,0) 100%);}
+  #dist-plot canvas{width:100%;height:100%;}
+
+  /* t strip */
+  #t-strip{position:fixed;bottom:0;left:0;right:0;padding:7px 18px 10px;background:rgba(5,5,10,0.94);border-top:1px solid rgba(120,120,160,0.06);z-index:30;display:flex;align-items:center;gap:10px;}
+  #t-strip .t-label{font-size:9.5px;color:#8888a0;white-space:nowrap;min-width:110px;}
+  #t-strip .t-label .t-val{color:#c8c8e0;font-weight:500;font-size:10.5px;}
+  #t-strip input[type="range"]{flex:1;-webkit-appearance:none;appearance:none;height:4px;background:rgba(140,140,180,0.1);border-radius:2px;outline:none;cursor:pointer;}
+  #t-strip input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9898b8;border:2px solid #0a0a14;cursor:pointer;}
+  #t-strip input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#9898b8;border:2px solid #0a0a14;cursor:pointer;}
+  .sw-ctrls{display:flex;gap:4px;align-items:center;}
+  .sw-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 9px;border-radius:4px;border:1px solid rgba(140,140,180,0.22);background:rgba(140,140,180,0.05);color:#9898b0;cursor:pointer;transition:all 0.2s;}
+  .sw-btn:hover{background:rgba(140,140,180,0.14);}
+  .sw-btn.playing{background:rgba(110,90,170,0.25);border-color:rgba(140,140,180,0.4);}
+
+  /* Panel */
+  #panel{position:fixed;top:82px;right:10px;width:clamp(210px,19vw,260px);background:rgba(8,8,16,0.74);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border:1px solid rgba(140,140,180,0.1);border-radius:9px;padding:11px 13px 9px;z-index:20;max-height:calc(100vh - 136px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(140,140,180,0.15) transparent;}
+  #panel::-webkit-scrollbar{width:3px;}
+  #panel::-webkit-scrollbar-thumb{background:rgba(140,140,180,0.15);border-radius:2px;}
+
+  .stit{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:600;color:#9090a8;margin-bottom:5px;letter-spacing:0.04em;}
+  .cg{margin-bottom:7px;}
+  .cg label{display:flex;justify-content:space-between;align-items:baseline;font-size:8.5px;font-weight:400;letter-spacing:0.05em;color:#606078;margin-bottom:2px;}
+  .cg label .v{color:#a0a0c0;font-weight:500;font-size:9px;min-width:32px;text-align:right;}
+  #panel input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:rgba(140,140,180,0.1);border-radius:2px;outline:none;cursor:pointer;}
+  #panel input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:#8080a0;border:2px solid #0a0a14;cursor:pointer;}
+  #panel input[type="range"]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:#8080a0;border:2px solid #0a0a14;cursor:pointer;}
+
+  .div{height:1px;background:rgba(140,140,180,0.05);margin:7px 0;}
+
+  .tt{display:flex;flex-direction:column;gap:3px;margin-bottom:5px;}
+  .tl{display:flex;align-items:center;gap:6px;font-size:8.5px;letter-spacing:0.03em;color:#606078;cursor:pointer;padding:3px 6px;border-radius:4px;border:1px solid transparent;transition:all 0.2s;user-select:none;}
+  .tl:hover{border-color:rgba(140,140,180,0.1);}
+  .tl.active{color:#b8b8d0;border-color:rgba(140,140,180,0.14);background:rgba(140,140,180,0.03);}
+  .tl .d{width:6px;height:6px;border-radius:50%;flex-shrink:0;box-shadow:0 0 4px currentColor;}
+  .tl .nfo{font-size:7px;color:#484860;margin-left:auto;white-space:nowrap;}
+
+  .tr{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;}
+  .tb{font-family:'IBM Plex Mono',monospace;font-size:7.5px;letter-spacing:0.04em;padding:2px 6px;border-radius:3px;border:1px solid rgba(140,140,180,0.15);background:rgba(140,140,180,0.02);color:#606878;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .tb.active{background:rgba(140,140,180,0.13);color:#b0b0c8;border-color:rgba(140,140,180,0.3);}
+
+  /* Zero panel */
+  #zpan{position:fixed;top:82px;left:12px;background:rgba(8,8,16,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,220,100,0.1);border-radius:8px;padding:9px 11px;z-index:20;font-size:8.5px;line-height:1.6;color:#908880;max-width:clamp(180px,18vw,240px);max-height:calc(100vh - 180px);overflow-y:auto;scrollbar-width:thin;}
+  #zpan::-webkit-scrollbar{width:2px;}
+  #zpan::-webkit-scrollbar-thumb{background:rgba(220,200,80,0.12);border-radius:2px;}
+  .zt{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:600;color:#d8c870;margin-bottom:3px;}
+  .ze{display:flex;gap:5px;font-size:8px;padding:1px 0;}
+  .ze .zn{color:#b8a850;min-width:16px;}
+  .ze .zg{color:#a09860;}
+  .ze.vis .zg{color:#e0d070;font-weight:500;}
+
+  /* Conv panel */
+  #cpan{position:fixed;bottom:110px;left:12px;background:rgba(8,8,16,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,140,180,0.07);border-radius:8px;padding:9px 11px;z-index:20;font-size:8px;line-height:1.55;color:#607080;max-width:clamp(175px,18vw,235px);}
+  .cl{display:flex;gap:5px;align-items:baseline;}
+  .cl .cd{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:2px;}
+
+  /* Pi/2 mode info */
+  #pi-info{position:fixed;bottom:110px;right:12px;background:rgba(8,8,16,0.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(100,200,160,0.12);border-radius:8px;padding:9px 11px;z-index:20;font-size:8px;line-height:1.6;color:#608878;max-width:200px;display:none;}
+  #pi-info .pit{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:600;color:#80c8a0;margin-bottom:3px;}
+
+  @media(max-width:700px){
+    #panel{top:auto;bottom:110px;right:6px;left:6px;width:auto;max-height:30vh;}
+    #zpan,#cpan,#pi-info{display:none;}
+    #dist-plot{height:35px;}
+    #mode-tabs{top:50px;left:8px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="mc"></canvas>
+
+<div id="title-bar">
+  <h1>Cuatro Enrollamientos · 𝕋²₍₂,₃₎ · 𝕋²₍₂,₅₎ · 𝕋²₍₅,₇₎ · 𝕋³₍₂,₃,₅₎</h1>
+  <div class="sub">Ceros de ζ · Convergentes · Tres modos de visualización</div>
+</div>
+
+<div id="mode-tabs">
+  <div class="mode-tab active" data-mode="full">Completo</div>
+  <div class="mode-tab" data-mode="micro">Desde t=0</div>
+  <div class="mode-tab" data-mode="quant">Múltiplos π/2</div>
+</div>
+
+<div id="panel">
+  <div class="stit">Toros</div>
+  <div class="tt">
+    <div class="tl active" id="tog-t23" style="color:#e09460;"><span class="d" style="background:#e09460;"></span>𝕋²₍₂,₃₎<span class="nfo">[1;1,1,2,…]</span></div>
+    <div class="tl active" id="tog-t25" style="color:#60a8e0;"><span class="d" style="background:#60a8e0;"></span>𝕋²₍₂,₅₎<span class="nfo">[2;3,9,…]</span></div>
+    <div class="tl active" id="tog-t57" style="color:#60e0a0;"><span class="d" style="background:#60e0a0;"></span>𝕋²₍₅,₇₎<span class="nfo">[1;4,1,3,…]</span></div>
+    <div class="tl active" id="tog-t235" style="color:#c080e0;"><span class="d" style="background:#c080e0;"></span>𝕋³₍₂,₃,₅₎<span class="nfo">Clifford</span></div>
+  </div>
+
+  <div class="div"></div>
+  <div class="stit">Parámetros</div>
+  <div class="cg"><label>R mayor (𝕋²)<span class="v" id="v-R">1.60</span></label><input type="range" id="s-R" min="0.5" max="3.5" value="1.6" step="0.01"></div>
+  <div class="cg"><label>R Clifford (𝕋³)<span class="v" id="v-Rc">1.00</span></label><input type="range" id="s-Rc" min="0.3" max="3.0" value="1.0" step="0.01"></div>
+  <div class="cg"><label>d estereográfica<span class="v" id="v-ds">1.50</span></label><input type="range" id="s-ds" min="1.0" max="3.0" value="1.5" step="0.01"></div>
+  <div class="cg"><label>σ<span class="v" id="v-sigma">0.50</span></label><input type="range" id="s-sigma" min="0.10" max="0.90" value="0.50" step="0.01"></div>
+  <div class="cg"><label>Puntos<span class="v" id="v-pts">12000</span></label><input type="range" id="s-pts" min="2000" max="30000" value="12000" step="500"></div>
+  <div class="cg"><label>Separación Z (𝕋²₍₅,₇₎)<span class="v" id="v-sep">3.00</span></label><input type="range" id="s-sep" min="0" max="6" value="3.0" step="0.1"></div>
+
+  <div class="div"></div>
+  <div class="stit">Vista</div>
+  <div class="tr">
+    <button class="tb active" id="btn-autorot">Autorot</button>
+    <button class="tb" id="btn-axes">Ejes</button>
+    <button class="tb active" id="btn-glow">Glow</button>
+    <button class="tb active" id="btn-ghosts">Guías</button>
+    <button class="tb active" id="btn-zeros">Ceros ζ</button>
+    <button class="tb active" id="btn-conv">Conv.</button>
+    <button class="tb active" id="btn-dp">d(t)</button>
+  </div>
+</div>
+
+<div id="zpan"><div class="zt">Ceros ζ(½+iγₙ)=0</div><div id="zlist"></div></div>
+<div id="cpan"></div>
+<div id="pi-info"><div class="pit">Muestreo t = k·π/2</div><div id="pi-detail"></div></div>
+<div id="dist-plot"><canvas id="dc"></canvas></div>
+
+<div id="t-strip">
+  <div class="t-label">t&thinsp;=&thinsp;<span class="t-val" id="v-t">200</span></div>
+  <input type="range" id="s-t" min="0" max="800" value="200" step="0.5">
+  <div class="sw-ctrls">
+    <button class="sw-btn" id="btn-play">▶</button>
+    <button class="sw-btn" id="btn-reset">↺</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:3px;">
+    <span style="font-size:7px;color:#505068;">vel.</span>
+    <input type="range" id="s-speed" min="0.1" max="6.0" value="1.0" step="0.1" style="width:55px;">
+  </div>
+</div>
+
+<script>
+(function(){
+const ln2=Math.log(2),ln3=Math.log(3),ln5=Math.log(5),ln7=Math.log(7);
+const PI=Math.PI,PI2=PI*2,PIH=PI/2;
+
+const ZEROS=[14.134725,21.022040,25.010858,30.424876,32.935062,37.586178,40.918719,43.327073,48.005151,49.773832,52.970321,56.446248,59.347044,60.831779,65.112544,67.079811,69.546402,72.067158,75.704691,77.144840,79.337375,82.910381,84.735493,87.425275,88.809111,92.491899,94.651344,95.870634,98.831194,101.317851];
+
+const CONV_23=[{p:1,q:1},{p:2,q:1},{p:3,q:2},{p:8,q:5},{p:19,q:12},{p:65,q:41}];
+const CONV_25=[{p:2,q:1},{p:7,q:3},{p:65,q:28},{p:137,q:59}];
+// ln7/ln5 ≈ 1.20906... = [1;4,1,3,1,2,...]
+// Convergents: 1/1, 5/4, 6/5, 23/19, 29/24
+const CONV_57=[{p:1,q:1},{p:5,q:4},{p:6,q:5},{p:23,q:19},{p:29,q:24}];
+
+function convT(c,lnBase){ return PI2*c.q/lnBase; }
+
+// ── State ──
+const S={
+  t:200,R:1.6,Rc:1.0,ds:1.5,sigma:0.5,numPts:12000,sep57:3.0,
+  show23:true,show25:true,show57:true,show235:true,
+  autoRotate:true,showAxes:false,showGlow:true,showGhosts:true,
+  showZeros:true,showConv:true,showDp:true,
+  sweepPlaying:false,sweepSpeed:1.0,
+  mode:'full' // 'full','micro','quant'
+};
+
+// ── Three.js ──
+const mc=document.getElementById('mc');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x05050a);
+scene.fog=new THREE.FogExp2(0x05050a,0.012);
+
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,300);
+const ren=new THREE.WebGLRenderer({canvas:mc,antialias:true});
+ren.setSize(innerWidth,innerHeight);
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+
+// ── Orbit ──
+const O={
+  tgt:new THREE.Vector3(0,0,0),
+  sph:new THREE.Spherical(8,PI*0.36,PI*0.18),
+  d:new THREE.Spherical(),sc:1,pan:new THREE.Vector3(),
+  dr:false,pn:false,px:0,py:0,
+  update(){
+    if(S.autoRotate&&!this.dr)this.d.theta-=0.001;
+    const f=0.08;
+    this.sph.theta+=this.d.theta*(1-f);this.sph.phi+=this.d.phi*(1-f);
+    this.sph.phi=Math.max(0.05,Math.min(PI-0.05,this.sph.phi));
+    this.sph.radius*=this.sc;this.sph.radius=Math.max(1.5,Math.min(40,this.sph.radius));
+    this.sc=1;this.tgt.add(this.pan);this.pan.multiplyScalar(1-f);
+    this.d.theta*=(1-f);this.d.phi*=(1-f);
+    camera.position.setFromSpherical(this.sph).add(this.tgt);
+    camera.lookAt(this.tgt);
+  }
+};
+const el=mc;let lTD=0;
+el.addEventListener('pointerdown',e=>{O.dr=true;O.pn=e.shiftKey||e.button===2;O.px=e.clientX;O.py=e.clientY;el.setPointerCapture(e.pointerId);});
+el.addEventListener('pointermove',e=>{if(!O.dr)return;const dx=e.clientX-O.px,dy=e.clientY-O.py;O.px=e.clientX;O.py=e.clientY;if(O.pn){const r=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);O.pan.add(r.multiplyScalar(-dx*O.sph.radius*0.004)).add(u.multiplyScalar(dy*O.sph.radius*0.004));}else{O.d.theta-=dx*0.005;O.d.phi-=dy*0.005;}});
+el.addEventListener('pointerup',()=>{O.dr=false;});
+el.addEventListener('wheel',e=>{e.preventDefault();O.sc*=e.deltaY>0?1.06:0.94;},{passive:false});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+el.addEventListener('touchstart',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lTD=Math.sqrt(dx*dx+dy*dy);}},{passive:true});
+el.addEventListener('touchmove',e=>{if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,dd=Math.sqrt(dx*dx+dy*dy);if(lTD>0)O.sc*=lTD/dd;lTD=dd;}},{passive:true});
+
+// ── Axes ──
+const axH=new THREE.AxesHelper(3);axH.visible=false;scene.add(axH);
+
+// ── Ghost tori ──
+let gh23,gh25,gh57;
+function buildGhosts(){
+  [gh23,gh25,gh57].forEach(g=>{if(g){scene.remove(g);g.geometry.dispose();}});
+  const r2=Math.pow(2,-S.sigma),r5=Math.pow(5,-S.sigma);
+  const gm=(c)=>new THREE.MeshBasicMaterial({color:c,wireframe:true,transparent:true,opacity:0.028});
+  gh23=new THREE.Mesh(new THREE.TorusGeometry(S.R,r2,22,52),gm(0xe09460));
+  gh25=new THREE.Mesh(new THREE.TorusGeometry(S.R,r2,22,52),gm(0x60a8e0));
+  gh57=new THREE.Mesh(new THREE.TorusGeometry(S.R,r5,22,52),gm(0x60e0a0));
+  gh57.position.z=S.sep57;
+  [gh23,gh25,gh57].forEach(g=>scene.add(g));
+  gh23.visible=S.showGhosts&&S.show23;
+  gh25.visible=S.showGhosts&&S.show25;
+  gh57.visible=S.showGhosts&&S.show57;
+}
+
+// ── Eval helpers ──
+function eT2(t,R,sig,lA,lB,offZ){
+  const rA=Math.pow(Math.exp(lA),-sig);
+  const thA=lA*t,thB=lB*t;
+  return new THREE.Vector3((R+rA*Math.cos(thA))*Math.cos(thB),(R+rA*Math.cos(thA))*Math.sin(thB),rA*Math.sin(thA)+(offZ||0));
+}
+function eT3(t,Rc,ds,sig){
+  const rP=[Math.pow(2,-sig),Math.pow(3,-sig),Math.pow(5,-sig)];
+  const x1=rP[0]*Math.cos(-ln2*t),y1=rP[0]*Math.sin(-ln2*t);
+  const x2=rP[1]*Math.cos(-ln3*t),y2=rP[1]*Math.sin(-ln3*t);
+  const x3=rP[2]*Math.cos(-ln5*t),y3=rP[2]*Math.sin(-ln5*t);
+  const X4=(Rc+x1)*x2,Y4=(Rc+x1)*y2,Z4=(Rc+x3)*x1,W4=(Rc+x3)*y1;
+  const d=ds-W4;
+  return new THREE.Vector3(X4/d,Y4/d,Z4/d);
+}
+
+// ── Line infra ──
+function mkL(op){
+  const o={g:new THREE.BufferGeometry(),m:new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:op,linewidth:1}),mesh:null};
+  o.mesh=new THREE.Line(o.g,o.m);scene.add(o.mesh);
+  o.up=function(p,c){this.g.dispose();this.g=new THREE.BufferGeometry();this.g.setAttribute('position',new THREE.BufferAttribute(p,3));this.g.setAttribute('color',new THREE.BufferAttribute(c,3));this.mesh.geometry=this.g;};
+  o.vi=function(v){this.mesh.visible=v;};
+  return o;
+}
+// Point (dot) infra for quant mode
+function mkPts(sz,op){
+  const o={g:new THREE.BufferGeometry(),m:new THREE.PointsMaterial({vertexColors:true,transparent:true,opacity:op,size:sz,sizeAttenuation:true,depthWrite:false}),mesh:null};
+  o.mesh=new THREE.Points(o.g,o.m);scene.add(o.mesh);
+  o.up=function(p,c){this.g.dispose();this.g=new THREE.BufferGeometry();this.g.setAttribute('position',new THREE.BufferAttribute(p,3));this.g.setAttribute('color',new THREE.BufferAttribute(c,3));this.mesh.geometry=this.g;};
+  o.vi=function(v){this.mesh.visible=v;};
+  return o;
+}
+
+const L={
+  t23:mkL(0.86),t23g:mkL(0.06),
+  t25:mkL(0.86),t25g:mkL(0.06),
+  t57:mkL(0.86),t57g:mkL(0.06),
+  t235:mkL(0.86),t235g:mkL(0.06),
+};
+L.t23g.mesh.scale.set(1.01,1.01,1.01);L.t25g.mesh.scale.set(1.01,1.01,1.01);
+L.t57g.mesh.scale.set(1.01,1.01,1.01);L.t235g.mesh.scale.set(1.01,1.01,1.01);
+
+// Quant mode dots
+const Q={
+  t23:mkPts(0.12,0.92),t25:mkPts(0.12,0.92),
+  t57:mkPts(0.12,0.92),t235:mkPts(0.12,0.92),
+  t23c:mkL(0.2),t25c:mkL(0.2),t57c:mkL(0.2),t235c:mkL(0.2), // connecting lines
+};
+
+// ── Markers ──
+const zGrp=new THREE.Group();scene.add(zGrp);
+const cGrp=new THREE.Group();scene.add(cGrp);
+const zSG=new THREE.SphereGeometry(0.055,10,10);
+const zGG=new THREE.SphereGeometry(0.13,8,8);
+const cDG=new THREE.OctahedronGeometry(0.045,0);
+const zM={
+  core:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.92}),
+  glow:new THREE.MeshBasicMaterial({color:0xffe060,transparent:true,opacity:0.15}),
+};
+const cM={
+  a:new THREE.MeshBasicMaterial({color:0xff8040,transparent:true,opacity:0.8}),
+  b:new THREE.MeshBasicMaterial({color:0x40a0ff,transparent:true,opacity:0.8}),
+  g:new THREE.MeshBasicMaterial({color:0x40e090,transparent:true,opacity:0.8}),
+  ag:new THREE.MeshBasicMaterial({color:0xff8040,transparent:true,opacity:0.12}),
+  bg:new THREE.MeshBasicMaterial({color:0x40a0ff,transparent:true,opacity:0.12}),
+  gg:new THREE.MeshBasicMaterial({color:0x40e090,transparent:true,opacity:0.12}),
+};
+
+function clrGrp(g){while(g.children.length)g.remove(g.children[0]);}
+
+function addMarker(grp,pos,coreMat,glowMat,coreGeo,glowGeo){
+  const m=new THREE.Mesh(coreGeo,coreMat);m.position.copy(pos);grp.add(m);
+  const gl=new THREE.Mesh(glowGeo,glowMat);gl.position.copy(pos);grp.add(gl);
+}
+
+function buildZeros(){
+  clrGrp(zGrp);
+  if(!S.showZeros)return;
+  ZEROS.filter(g=>g<=S.t).forEach(g=>{
+    if(S.show23) addMarker(zGrp,eT2(g,S.R,S.sigma,ln2,ln3,0),zM.core,zM.glow,zSG,zGG);
+    if(S.show25) addMarker(zGrp,eT2(g,S.R,S.sigma,ln2,ln5,0),zM.core,zM.glow,zSG,zGG);
+    if(S.show57) addMarker(zGrp,eT2(g,S.R,S.sigma,ln5,ln7,S.sep57),zM.core,zM.glow,zSG,zGG);
+    if(S.show235) addMarker(zGrp,eT3(g,S.Rc,S.ds,S.sigma),zM.core,zM.glow,zSG,zGG);
+  });
+}
+
+function buildConvs(){
+  clrGrp(cGrp);
+  if(!S.showConv)return;
+  if(S.show23) CONV_23.forEach(c=>{const tc=convT(c,ln2);if(tc<=S.t)addMarker(cGrp,eT2(tc,S.R,S.sigma,ln2,ln3,0),cM.a,cM.ag,cDG,zGG);});
+  if(S.show25) CONV_25.forEach(c=>{const tc=convT(c,ln2);if(tc<=S.t)addMarker(cGrp,eT2(tc,S.R,S.sigma,ln2,ln5,0),cM.b,cM.bg,cDG,zGG);});
+  if(S.show57) CONV_57.forEach(c=>{const tc=convT(c,ln5);if(tc<=S.t)addMarker(cGrp,eT2(tc,S.R,S.sigma,ln5,ln7,S.sep57),cM.g,cM.gg,cDG,zGG);});
+}
+
+// ── Compute curves ──
+function compT2(t,N,R,sig,lA,lB,hBase,offZ){
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+  if(N<2)return{pos,col};
+  const dt=t/N,rA=Math.pow(Math.exp(lA),-sig);
+  const c=new THREE.Color();
+  const vZ=ZEROS.filter(g=>g<=t);
+  for(let i=0;i<N;i++){
+    const tt=i*dt,thA=lA*tt,thB=lB*tt;
+    pos[i*3]=(R+rA*Math.cos(thA))*Math.cos(thB);
+    pos[i*3+1]=(R+rA*Math.cos(thA))*Math.sin(thB);
+    pos[i*3+2]=rA*Math.sin(thA)+(offZ||0);
+    let mD=999;for(let z=0;z<vZ.length;z++){const dd=Math.abs(tt-vZ[z]);if(dd<mD)mD=dd;}
+    const zp=Math.exp(-mD*mD*0.8);
+    c.setHSL((hBase+0.03*(tt/Math.max(t,0.01)))%1,0.62+0.28*zp,0.30+0.16*Math.sin(tt*0.3)+0.38*zp);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  return{pos,col};
+}
+
+function compT3(t,N,Rc,ds,sig){
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+  if(N<2)return{pos,col};
+  const dt=t/N;
+  const rP=[Math.pow(2,-sig),Math.pow(3,-sig),Math.pow(5,-sig)];
+  const c=new THREE.Color();const vZ=ZEROS.filter(g=>g<=t);
+  for(let i=0;i<N;i++){
+    const tt=i*dt;
+    const x1=rP[0]*Math.cos(-ln2*tt),y1=rP[0]*Math.sin(-ln2*tt);
+    const x2=rP[1]*Math.cos(-ln3*tt),y2=rP[1]*Math.sin(-ln3*tt);
+    const x3=rP[2]*Math.cos(-ln5*tt),y3=rP[2]*Math.sin(-ln5*tt);
+    const X4=(Rc+x1)*x2,Y4=(Rc+x1)*y2,Z4=(Rc+x3)*x1,W4=(Rc+x3)*y1;
+    const d=ds-W4;
+    pos[i*3]=X4/d;pos[i*3+1]=Y4/d;pos[i*3+2]=Z4/d;
+    let mD=999;for(let z=0;z<vZ.length;z++){const dd=Math.abs(tt-vZ[z]);if(dd<mD)mD=dd;}
+    const zp=Math.exp(-mD*mD*0.8);
+    c.setHSL((0.78+0.08*(tt/Math.max(t,0.01))-0.12*zp)%1,0.58+0.32*zp,0.32+0.14*Math.sin(tt*0.25)+0.4*zp);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  return{pos,col};
+}
+
+// Quant mode: sample at multiples of π/2
+function compQuantT2(t,R,sig,lA,lB,hBase,offZ){
+  const nSteps=Math.floor(t/PIH);
+  if(nSteps<1)return{pos:new Float32Array(0),col:new Float32Array(0),n:0};
+  const pos=new Float32Array(nSteps*3),col=new Float32Array(nSteps*3);
+  const rA=Math.pow(Math.exp(lA),-sig);
+  const c=new THREE.Color();
+  for(let k=0;k<nSteps;k++){
+    const tt=(k+1)*PIH;
+    const thA=lA*tt,thB=lB*tt;
+    pos[k*3]=(R+rA*Math.cos(thA))*Math.cos(thB);
+    pos[k*3+1]=(R+rA*Math.cos(thA))*Math.sin(thB);
+    pos[k*3+2]=rA*Math.sin(thA)+(offZ||0);
+    const frac=tt/Math.max(t,0.01);
+    c.setHSL((hBase+0.06*frac)%1,0.75,0.5);
+    col[k*3]=c.r;col[k*3+1]=c.g;col[k*3+2]=c.b;
+  }
+  return{pos,col,n:nSteps};
+}
+
+function compQuantT3(t,Rc,ds,sig){
+  const nSteps=Math.floor(t/PIH);
+  if(nSteps<1)return{pos:new Float32Array(0),col:new Float32Array(0),n:0};
+  const pos=new Float32Array(nSteps*3),col=new Float32Array(nSteps*3);
+  const rP=[Math.pow(2,-sig),Math.pow(3,-sig),Math.pow(5,-sig)];
+  const c=new THREE.Color();
+  for(let k=0;k<nSteps;k++){
+    const tt=(k+1)*PIH;
+    const x1=rP[0]*Math.cos(-ln2*tt),y1=rP[0]*Math.sin(-ln2*tt);
+    const x2=rP[1]*Math.cos(-ln3*tt),y2=rP[1]*Math.sin(-ln3*tt);
+    const x3=rP[2]*Math.cos(-ln5*tt),y3=rP[2]*Math.sin(-ln5*tt);
+    const X4=(Rc+x1)*x2,Y4=(Rc+x1)*y2,Z4=(Rc+x3)*x1,W4=(Rc+x3)*y1;
+    const d=ds-W4;
+    pos[k*3]=X4/d;pos[k*3+1]=Y4/d;pos[k*3+2]=Z4/d;
+    c.setHSL((0.78+0.1*tt/Math.max(t,0.01))%1,0.7,0.5);
+    col[k*3]=c.r;col[k*3+1]=c.g;col[k*3+2]=c.b;
+  }
+  return{pos,col,n:nSteps};
+}
+
+// ── Dist plot ──
+const dc=document.getElementById('dc');
+const dctx=dc.getContext('2d');
+function drawDist(){
+  const W=dc.width=dc.offsetWidth*devicePixelRatio;
+  const H=dc.height=dc.offsetHeight*devicePixelRatio;
+  dctx.clearRect(0,0,W,H);
+  if(!S.showDp){document.getElementById('dist-plot').style.opacity='0';return;}
+  document.getElementById('dist-plot').style.opacity='1';
+  const t=S.t,steps=Math.min(600,Math.max(50,Math.floor(t*2)));
+  if(steps<2||t<0.01)return;
+  const p0_23=eT2(0,S.R,S.sigma,ln2,ln3,0);
+  const p0_25=eT2(0,S.R,S.sigma,ln2,ln5,0);
+  const p0_57=eT2(0,S.R,S.sigma,ln5,ln7,0);
+  const da=[],db=[],dg=[];let mx=0.001;
+  for(let i=0;i<=steps;i++){
+    const tt=(i/steps)*t;
+    if(S.show23){const d=eT2(tt,S.R,S.sigma,ln2,ln3,0).distanceTo(p0_23);da.push({t:tt,d});if(d>mx)mx=d;}
+    if(S.show25){const d=eT2(tt,S.R,S.sigma,ln2,ln5,0).distanceTo(p0_25);db.push({t:tt,d});if(d>mx)mx=d;}
+    if(S.show57){const d=eT2(tt,S.R,S.sigma,ln5,ln7,0).distanceTo(p0_57);dg.push({t:tt,d});if(d>mx)mx=d;}
+  }
+  const pad=3,pw=W-pad*2,ph=H-pad*2;
+  function dr(arr,col,al){
+    if(!arr.length)return;
+    dctx.beginPath();dctx.strokeStyle=col;dctx.globalAlpha=al;dctx.lineWidth=devicePixelRatio*1.1;
+    for(let i=0;i<arr.length;i++){const x=pad+(arr[i].t/t)*pw,y=pad+ph-(arr[i].d/mx)*ph;i===0?dctx.moveTo(x,y):dctx.lineTo(x,y);}
+    dctx.stroke();
+  }
+  dctx.globalAlpha=0.06;dctx.strokeStyle='#8888aa';dctx.lineWidth=devicePixelRatio*0.4;
+  for(let i=0;i<=4;i++){const y=pad+(ph*i/4);dctx.beginPath();dctx.moveTo(pad,y);dctx.lineTo(pad+pw,y);dctx.stroke();}
+  dr(da,'#e09460',0.65);dr(db,'#60a8e0',0.65);dr(dg,'#60e0a0',0.65);
+  dctx.globalAlpha=0.3;dctx.strokeStyle='#ffe060';dctx.lineWidth=devicePixelRatio;
+  ZEROS.forEach(g=>{if(g>t)return;const x=pad+(g/t)*pw;dctx.beginPath();dctx.moveTo(x,pad);dctx.lineTo(x,pad+ph);dctx.stroke();});
+  if(S.showConv){
+    dctx.lineWidth=devicePixelRatio*1.3;
+    const drawConvTick=(arr,lnBase,col)=>{arr.forEach(c=>{const tc=convT(c,lnBase);if(tc>t)return;dctx.globalAlpha=0.45;dctx.strokeStyle=col;const x=pad+(tc/t)*pw;dctx.beginPath();dctx.moveTo(x,pad+ph-3);dctx.lineTo(x,pad+ph+2);dctx.stroke();});};
+    if(S.show23)drawConvTick(CONV_23,ln2,'#e09460');
+    if(S.show25)drawConvTick(CONV_25,ln2,'#60a8e0');
+    if(S.show57)drawConvTick(CONV_57,ln5,'#60e0a0');
+  }
+  // Quant mode: mark π/2 steps
+  if(S.mode==='quant'){
+    dctx.globalAlpha=0.15;dctx.strokeStyle='#80ffa0';dctx.lineWidth=devicePixelRatio*0.5;
+    const n=Math.floor(t/PIH);
+    for(let k=1;k<=n&&k<200;k++){
+      const tt=k*PIH,x=pad+(tt/t)*pw;
+      dctx.beginPath();dctx.moveTo(x,pad);dctx.lineTo(x,pad+ph);dctx.stroke();
+    }
+  }
+  dctx.globalAlpha=0.3;dctx.font=`${8*devicePixelRatio}px 'IBM Plex Mono'`;dctx.fillStyle='#7070a0';
+  dctx.fillText('d(t,0)',pad+2,pad+8*devicePixelRatio);
+  dctx.globalAlpha=1;
+}
+
+// ── Panels ──
+function updZL(){
+  document.getElementById('zlist').innerHTML=ZEROS.map((g,i)=>{
+    const vis=g<=S.t;
+    return `<div class="ze${vis?' vis':''}"><span class="zn">${i+1}</span><span class="zg">γ=${g.toFixed(2)}${vis?' ●':''}</span></div>`;
+  }).join('');
+}
+function updCP(){
+  const el=document.getElementById('cpan');
+  let h='<div style="font-family:Cormorant Garamond,serif;font-size:9.5px;font-weight:600;color:#8898a8;margin-bottom:4px;">Quasi-clausuras</div>';
+  const mk=(arr,lnBase,col,lbl)=>{
+    h+=`<div style="margin-bottom:3px;font-size:7.5px;color:#506068;">${lbl}</div>`;
+    arr.forEach(c=>{const tc=convT(c,lnBase);const vis=tc<=S.t;
+    h+=`<div class="cl" style="opacity:${vis?1:0.25}"><span class="cd" style="background:${col};"></span><span style="color:${vis?col:'#404050'};font-size:7.5px;">${c.p}/${c.q} → t≈${tc.toFixed(1)}</span></div>`;});
+  };
+  if(S.show23)mk(CONV_23,ln2,'#e09460','(2,3)');
+  if(S.show25)mk(CONV_25,ln2,'#60a8e0','(2,5)');
+  if(S.show57)mk(CONV_57,ln5,'#60e0a0','(5,7)');
+  el.innerHTML=h;
+}
+function updPi(){
+  const el=document.getElementById('pi-detail');
+  const n=Math.floor(S.t/PIH);
+  el.innerHTML=`k = ${n} muestras<br>t_max = ${(n*PIH).toFixed(3)}<br><br>` +
+    `<span style="color:#506868;font-size:7px;">ω₂·kπ/2 mod 2π muestra la<br>distribución angular discreta.<br>` +
+    `A k grande, Weyl garantiza<br>equidistribución en 𝕋ⁿ.</span>`;
+}
+
+// ── Rebuild ──
+function rebuild(){
+  const t=S.t,N=S.numPts;
+  const isQ=S.mode==='quant';
+
+  // Hide lines or dots depending on mode
+  Object.values(L).forEach(l=>l.vi(false));
+  Object.values(Q).forEach(q=>q.vi(false));
+
+  if(isQ){
+    // Quant mode: dots + faint connecting lines
+    if(S.show23){
+      const d=compQuantT2(t,S.R,S.sigma,ln2,ln3,0.07,0);
+      if(d.n>0){Q.t23.up(d.pos,d.col);Q.t23.vi(true);Q.t23c.up(d.pos.slice(),d.col.slice());Q.t23c.vi(true);}
+    }
+    if(S.show25){
+      const d=compQuantT2(t,S.R,S.sigma,ln2,ln5,0.56,0);
+      if(d.n>0){Q.t25.up(d.pos,d.col);Q.t25.vi(true);Q.t25c.up(d.pos.slice(),d.col.slice());Q.t25c.vi(true);}
+    }
+    if(S.show57){
+      const d=compQuantT2(t,S.R,S.sigma,ln5,ln7,0.38,S.sep57);
+      if(d.n>0){Q.t57.up(d.pos,d.col);Q.t57.vi(true);Q.t57c.up(d.pos.slice(),d.col.slice());Q.t57c.vi(true);}
+    }
+    if(S.show235){
+      const d=compQuantT3(t,S.Rc,S.ds,S.sigma);
+      if(d.n>0){Q.t235.up(d.pos,d.col);Q.t235.vi(true);Q.t235c.up(d.pos.slice(),d.col.slice());Q.t235c.vi(true);}
+    }
+  } else {
+    // Full or Micro: continuous lines
+    const effN=Math.max(200,N);
+    if(S.show23){const d=compT2(t,effN,S.R,S.sigma,ln2,ln3,0.07,0);L.t23.up(d.pos,d.col);L.t23.vi(true);if(S.showGlow){L.t23g.up(d.pos.slice(),d.col.slice());L.t23g.vi(true);}}
+    if(S.show25){const d=compT2(t,effN,S.R,S.sigma,ln2,ln5,0.56,0);L.t25.up(d.pos,d.col);L.t25.vi(true);if(S.showGlow){L.t25g.up(d.pos.slice(),d.col.slice());L.t25g.vi(true);}}
+    if(S.show57){const d=compT2(t,effN,S.R,S.sigma,ln5,ln7,0.38,S.sep57);L.t57.up(d.pos,d.col);L.t57.vi(true);if(S.showGlow){L.t57g.up(d.pos.slice(),d.col.slice());L.t57g.vi(true);}}
+    if(S.show235){const d=compT3(t,effN,S.Rc,S.ds,S.sigma);L.t235.up(d.pos,d.col);L.t235.vi(true);if(S.showGlow){L.t235g.up(d.pos.slice(),d.col.slice());L.t235g.vi(true);}}
+  }
+
+  if(gh23)gh23.visible=S.showGhosts&&S.show23;
+  if(gh25)gh25.visible=S.showGhosts&&S.show25;
+  if(gh57){gh57.visible=S.showGhosts&&S.show57;gh57.position.z=S.sep57;}
+
+  buildZeros();buildConvs();updZL();updCP();updPi();drawDist();
+}
+
+// ── Mode switching ──
+function setMode(mode){
+  S.mode=mode;
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));
+
+  const sT=document.getElementById('s-t');
+  const piInfo=document.getElementById('pi-info');
+
+  if(mode==='micro'){
+    sT.min='0';sT.max='30';sT.step='0.05';sT.value=Math.min(S.t,30);
+    S.t=parseFloat(sT.value);
+    piInfo.style.display='none';
+  } else if(mode==='quant'){
+    sT.min='0';sT.max='800';sT.step=String(PIH);sT.value=Math.round(S.t/PIH)*PIH;
+    S.t=parseFloat(sT.value);
+    piInfo.style.display='block';
+  } else {
+    sT.min='0';sT.max='800';sT.step='0.5';
+    piInfo.style.display='none';
+  }
+  document.getElementById('v-t').textContent=fmtT(S.t);
+  rebuild();
+}
+
+function fmtT(t){
+  if(S.mode==='quant'){
+    const k=Math.round(t/PIH);
+    return k===0?'0':`${k}·π/2`;
+  }
+  return t<1?t.toFixed(3):t<10?t.toFixed(2):t.toFixed(0);
+}
+
+// ── Pulse zeros ──
+function pulseZ(time){
+  const p=0.6+0.4*Math.sin(time*3);
+  zM.glow.opacity=0.1+0.15*p;
+  zGrp.children.forEach((ch,i)=>{if(i%2===1){const s=1+0.15*p;ch.scale.set(s,s,s);}});
+}
+
+// ── UI ──
+const $=id=>document.getElementById(id);
+
+document.querySelectorAll('.mode-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>setMode(tab.dataset.mode));
+});
+
+const sT=$('s-t'),vT=$('v-t');
+sT.addEventListener('input',()=>{
+  S.t=parseFloat(sT.value);
+  vT.textContent=fmtT(S.t);
+  rebuild();
+});
+
+const bp=$('btn-play');
+bp.addEventListener('click',()=>{
+  S.sweepPlaying=!S.sweepPlaying;
+  bp.textContent=S.sweepPlaying?'⏸':'▶';
+  bp.classList.toggle('playing',S.sweepPlaying);
+});
+$('btn-reset').addEventListener('click',()=>{
+  S.t=0;sT.value=0;vT.textContent=fmtT(0);
+  S.sweepPlaying=false;bp.textContent='▶';bp.classList.remove('playing');
+  rebuild();
+});
+$('s-speed').addEventListener('input',()=>{S.sweepSpeed=parseFloat($('s-speed').value);});
+
+function wire(sId,vId,prop,fmt){
+  $(sId).addEventListener('input',()=>{S[prop]=parseFloat($(sId).value);$(vId).textContent=fmt(S[prop]);rebuild();buildGhosts();});
+}
+wire('s-R','v-R','R',v=>v.toFixed(2));
+wire('s-Rc','v-Rc','Rc',v=>v.toFixed(2));
+wire('s-ds','v-ds','ds',v=>v.toFixed(2));
+wire('s-sigma','v-sigma','sigma',v=>v.toFixed(2));
+wire('s-pts','v-pts','numPts',v=>v.toFixed(0));
+wire('s-sep','v-sep','sep57',v=>v.toFixed(1));
+
+function togT(id,prop){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('active',S[prop]);rebuild();});}
+togT('tog-t23','show23');togT('tog-t25','show25');togT('tog-t57','show57');togT('tog-t235','show235');
+
+function togB(id,prop,cb){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('active',S[prop]);if(cb)cb();else rebuild();});}
+togB('btn-autorot','autoRotate',()=>{});
+togB('btn-axes','showAxes',()=>{axH.visible=S.showAxes;});
+togB('btn-glow','showGlow');
+togB('btn-ghosts','showGhosts',()=>{buildGhosts();});
+togB('btn-zeros','showZeros');
+togB('btn-conv','showConv');
+togB('btn-dp','showDp',()=>{drawDist();});
+
+// ── Loop ──
+let last=performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=(now-last)*0.001;last=now;
+
+  if(S.sweepPlaying){
+    const inc=S.mode==='quant'?PIH*S.sweepSpeed*dt*4:dt*S.sweepSpeed*16;
+    S.t+=inc;
+    const mx=parseFloat(sT.max);
+    if(S.t>=mx){S.t=mx;S.sweepPlaying=false;bp.textContent='▶';bp.classList.remove('playing');}
+    if(S.mode==='quant') S.t=Math.round(S.t/PIH)*PIH;
+    sT.value=S.t;vT.textContent=fmtT(S.t);
+    rebuild();
+  }
+
+  pulseZ(now*0.001);
+  O.update();
+  ren.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  ren.setSize(innerWidth,innerHeight);
+  drawDist();
+});
+
+buildGhosts();rebuild();animate(performance.now());
+})();
+</script>
+</body>
+</html>

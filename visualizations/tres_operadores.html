@@ -1,0 +1,461 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tres Operadores · Un Toro · p⁻ˢ = p⁻σ e⁻ⁱωt</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#030308;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:grab;}
+body:active{cursor:grabbing;}
+canvas#mc{display:block;position:fixed;top:0;left:0;z-index:0;}
+
+#hud-top{position:fixed;top:0;left:0;right:0;padding:8px 16px 5px;background:linear-gradient(180deg,rgba(3,3,8,0.97),rgba(3,3,8,0));z-index:10;pointer-events:none;}
+#hud-top h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(12px,2vw,18px);color:#eeeef4;}
+#hud-top .sub{font-size:clamp(6px,0.8vw,8px);font-weight:300;letter-spacing:0.2em;color:#484058;text-transform:uppercase;margin-top:1px;}
+
+#ctrl{position:fixed;top:46px;left:0;right:0;padding:5px 16px;z-index:25;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:rgba(3,3,8,0.92);border-bottom:1px solid rgba(120,100,180,0.06);}
+.cg{display:flex;align-items:center;gap:5px;}
+.cg label{font-size:8px;color:#605878;white-space:nowrap;min-width:22px;}
+.cg .v{font-size:11px;font-weight:500;min-width:38px;text-align:right;}
+.vs{color:#e8a040;}
+.vn{color:#70a8e0;}
+.vt{color:#a0e070;}
+#ctrl input[type="range"]{-webkit-appearance:none;height:4px;border-radius:2px;outline:none;cursor:pointer;}
+#ctrl input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;border:2px solid #0a0a18;cursor:pointer;}
+#s-sigma{background:linear-gradient(90deg,rgba(232,160,64,0.3),rgba(232,160,64,0.1));width:clamp(80px,12vw,140px);}
+#s-sigma::-webkit-slider-thumb{background:linear-gradient(135deg,#e8a040,#c07030);}
+#s-N{background:linear-gradient(90deg,rgba(112,168,224,0.3),rgba(112,168,224,0.1));width:clamp(80px,12vw,140px);}
+#s-N::-webkit-slider-thumb{background:linear-gradient(135deg,#70a8e0,#5080c0);}
+#s-t{background:linear-gradient(90deg,rgba(160,224,112,0.3),rgba(160,224,112,0.1));width:clamp(80px,12vw,140px);}
+#s-t::-webkit-slider-thumb{background:linear-gradient(135deg,#a0e070,#60b040);}
+
+#panel{position:fixed;top:84px;right:8px;width:clamp(180px,15vw,220px);background:rgba(4,4,14,0.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(120,100,180,0.06);border-radius:8px;padding:8px 10px;z-index:20;max-height:calc(100vh - 130px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(120,100,180,0.08) transparent;font-size:7.5px;}
+.st{font-family:'Cormorant Garamond',serif;font-size:9px;font-weight:600;color:#8070a0;margin-bottom:3px;}
+.dv{height:1px;background:rgba(120,100,180,0.04);margin:5px 0;}
+.tr{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px;}
+.tb{font-size:6.5px;padding:2px 5px;border-radius:3px;border:1px solid rgba(120,100,180,0.12);background:rgba(120,100,180,0.02);color:#504868;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tb.on{background:rgba(120,100,180,0.12);color:#a098c0;border-color:rgba(120,100,180,0.25);}
+.ir{display:flex;justify-content:space-between;gap:4px;padding:1px 0;font-size:7px;}
+.ir .il{color:#404858;}.ir .iv{font-weight:500;text-align:right;}
+
+#bot{position:fixed;bottom:0;left:0;right:0;padding:5px 16px 8px;background:rgba(3,3,8,0.95);border-top:1px solid rgba(120,100,180,0.04);z-index:30;display:flex;align-items:center;gap:6px;}
+.sb{font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid rgba(120,100,180,0.15);background:rgba(120,100,180,0.03);color:#8078a0;cursor:pointer;}
+.sb:hover{background:rgba(120,100,180,0.08);}
+.sb.on{background:rgba(120,100,180,0.18);color:#b0a8d0;}
+
+/* Weil spectrum bar */
+#weil-bar{position:fixed;bottom:42px;left:0;right:0;height:50px;z-index:15;pointer-events:none;}
+#weil-bar canvas{width:100%;height:100%;}
+
+/* Info left */
+#info{position:fixed;top:84px;left:8px;background:rgba(4,4,14,0.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(120,100,180,0.05);border-radius:7px;padding:8px 10px;z-index:20;font-size:7px;line-height:1.6;color:#506068;max-width:clamp(170px,17vw,230px);}
+.ceq{font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;color:#a098b0;margin:4px 0 3px;}
+.warn{color:#a07040;font-size:6.5px;margin-top:4px;}
+
+@media(max-width:700px){
+  #panel{display:none;}
+  #info{display:none;}
+  #weil-bar{height:30px;}
+}
+</style>
+</head>
+<body>
+<canvas id="mc"></canvas>
+
+<div id="hud-top">
+  <h1>Tres Operadores · Un Toro</h1>
+  <div class="sub">p⁻ˢ = p⁻σ · e⁻ⁱ·ˡⁿ⁽ᵖ⁾·ᵗ &nbsp;·&nbsp; Producto · Derivada logarítmica · Forma de Weil</div>
+</div>
+
+<div id="ctrl">
+  <div class="cg"><label>σ</label><input type="range" id="s-sigma" min="0.30" max="1.20" value="0.50" step="0.01"><span class="v vs" id="v-sigma">0.50</span></div>
+  <div class="cg"><label>N</label><input type="range" id="s-N" min="2" max="500" value="50" step="1"><span class="v vn" id="v-N">50</span></div>
+  <div class="cg"><label>γ</label><input type="range" id="s-t" min="0" max="7" value="0" step="1"><span class="v vt" id="v-t">γ₁</span></div>
+</div>
+
+<div id="info">
+  <div class="ceq">p⁻ˢ = p⁻σ · e⁻ⁱωt</div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">σ = </span><span class="iv vs" id="ri-s">0.50</span></div>
+  <div class="ir"><span class="il">N primos</span><span class="iv vn" id="ri-n">50</span></div>
+  <div class="ir"><span class="il">γ = </span><span class="iv vt" id="ri-g">14.135</span></div>
+  <div class="dv"></div>
+  <div class="st" style="color:#e8a040;">Capa 1: Producto</div>
+  <div style="font-size:6.5px;color:#504848;">Estela de P(N) al crecer N.<br>σ>1: converge. σ=½: diverge.</div>
+  <div class="dv"></div>
+  <div class="st" style="color:#e06060;">Capa 2: −ζ'/ζ</div>
+  <div style="font-size:6.5px;color:#504848;">Flechas = Σ ln(p)·p⁻ˢ/(1−p⁻ˢ)<br>Ceros: donde las flechas se anulan.</div>
+  <div class="dv"></div>
+  <div class="st" style="color:#60c0a0;">Capa 3: Weil</div>
+  <div style="font-size:6.5px;color:#504848;">Eigenvalores de la forma cuadrática<br>discretizada. λ_min → detección del cero.</div>
+  <div class="dv"></div>
+  <div class="warn">t parametriza la línea crítica.<br>Todo lo demás es andamiaje.</div>
+</div>
+
+<div id="panel">
+  <div class="st">Capas visibles</div>
+  <div class="tr">
+    <button class="tb on" id="b-trail">Estela P(N)</button>
+    <button class="tb on" id="b-arrows">Flechas −ζ'/ζ</button>
+    <button class="tb on" id="b-weil">Espectro Weil</button>
+    <button class="tb on" id="b-glow">Glow</button>
+    <button class="tb" id="b-axes">Ejes</button>
+  </div>
+  <div class="dv"></div>
+  <div class="st">Diagnóstico en tiempo real</div>
+  <div class="ir"><span class="il">|P(N)|</span><span class="iv vs" id="rd-pn">—</span></div>
+  <div class="ir"><span class="il">|−ζ'/ζ| estim.</span><span class="iv" style="color:#e06060;" id="rd-ld">—</span></div>
+  <div class="ir"><span class="il">λ_min Weil</span><span class="iv" style="color:#60c0a0;" id="rd-wm">—</span></div>
+  <div class="ir"><span class="il">Converge?</span><span class="iv" id="rd-conv">—</span></div>
+  <div class="dv"></div>
+  <div class="st">Transición σ</div>
+  <div style="font-size:6.5px;color:#404858;line-height:1.5;">
+    σ > 1: espiral colapsa ✓<br>
+    σ ≈ 0.8: se abre<br>
+    σ = 0.5: drift infinito ✗
+  </div>
+</div>
+
+<div id="weil-bar"><canvas id="wc"></canvas></div>
+
+<div id="bot">
+  <button class="sb" id="b-play">▶ Animar σ</button>
+  <button class="sb" id="b-reset">↺</button>
+  <span style="font-size:7px;color:#404058;">σ: 1.2 → 0.3</span>
+</div>
+
+<script>
+(function(){
+function sieve(n){const s=new Uint8Array(n+1);s[0]=s[1]=1;for(let i=2;i*i<=n;i++)if(!s[i])for(let j=i*i;j<=n;j+=i)s[j]=1;const p=[];for(let i=2;i<=n;i++)if(!s[i])p.push(i);return p;}
+const P=sieve(5000).slice(0,502);
+const LN=new Float64Array(P.length);for(let i=0;i<P.length;i++)LN[i]=Math.log(P[i]);
+const ZEROS=[14.134725,21.022040,25.010858,30.424876,32.935062,37.586178,40.918719,43.327073];
+const PI=Math.PI,R=1.5;
+
+const S={sigma:0.50,N:50,zi:0,showTrail:true,showArrows:true,showWeil:true,glow:true,axes:false,animSigma:false};
+
+const mc=document.getElementById('mc');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x030308);scene.fog=new THREE.FogExp2(0x030308,0.02);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.05,200);
+const ren=new THREE.WebGLRenderer({canvas:mc,antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));
+
+// Orbit
+const O={tgt:new THREE.Vector3(0,0,0),sph:new THREE.Spherical(5,PI*0.38,PI*0.18),d:new THREE.Spherical(),sc:1,pan:new THREE.Vector3(),dr:false,pn:false,px:0,py:0,
+update(){if(!this.dr)this.d.theta-=0.0005;const f=0.08;this.sph.theta+=this.d.theta*(1-f);this.sph.phi+=this.d.phi*(1-f);this.sph.phi=Math.max(0.05,Math.min(PI-0.05,this.sph.phi));this.sph.radius*=this.sc;this.sph.radius=Math.max(0.5,Math.min(20,this.sph.radius));this.sc=1;this.tgt.add(this.pan);this.pan.multiplyScalar(1-f);this.d.theta*=(1-f);this.d.phi*=(1-f);cam.position.setFromSpherical(this.sph).add(this.tgt);cam.lookAt(this.tgt);}};
+mc.addEventListener('pointerdown',e=>{O.dr=true;O.pn=e.shiftKey||e.button===2;O.px=e.clientX;O.py=e.clientY;mc.setPointerCapture(e.pointerId);});
+mc.addEventListener('pointermove',e=>{if(!O.dr)return;const dx=e.clientX-O.px,dy=e.clientY-O.py;O.px=e.clientX;O.py=e.clientY;if(O.pn){const r=new THREE.Vector3().setFromMatrixColumn(cam.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(cam.matrix,1);O.pan.add(r.multiplyScalar(-dx*O.sph.radius*0.003)).add(u.multiplyScalar(dy*O.sph.radius*0.003));}else{O.d.theta-=dx*0.005;O.d.phi-=dy*0.005;}});
+mc.addEventListener('pointerup',()=>{O.dr=false;});
+mc.addEventListener('wheel',e=>{e.preventDefault();O.sc*=e.deltaY>0?1.06:0.94;},{passive:false});
+mc.addEventListener('contextmenu',e=>e.preventDefault());
+
+const axH=new THREE.AxesHelper(2);axH.visible=false;scene.add(axH);
+
+// ── Layer 1: Trail ──
+const trailMat=new THREE.LineBasicMaterial({color:0xe8a040,transparent:true,opacity:0.8});
+let trailGeo=new THREE.BufferGeometry();
+const trailLine=new THREE.Line(trailGeo,trailMat);scene.add(trailLine);
+const glowMat=new THREE.LineBasicMaterial({color:0xe8a040,transparent:true,opacity:0.06});
+let glowGeo=new THREE.BufferGeometry();
+const glowLine=new THREE.Line(glowGeo,glowMat);glowLine.scale.set(1.01,1.01,1.01);scene.add(glowLine);
+
+// Current point
+const ptMat=new THREE.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:0.95});
+const ptGlMat=new THREE.MeshBasicMaterial({color:0xe8a040,transparent:true,opacity:0.15});
+const ptM=new THREE.Mesh(new THREE.SphereGeometry(0.025,8,8),ptMat);
+const ptGl=new THREE.Mesh(new THREE.SphereGeometry(0.06,6,6),ptGlMat);
+scene.add(ptM);scene.add(ptGl);
+
+// ── Layer 2: Arrows (−ζ'/ζ contributions) ──
+const MAX_ARROWS=60;
+const arrowGroup=new THREE.Group();scene.add(arrowGroup);
+const arrowObjs=[];
+for(let i=0;i<MAX_ARROWS;i++){
+  const shaft=new THREE.LineBasicMaterial({color:0xe06060,transparent:true,opacity:0.6});
+  const sg=new THREE.BufferGeometry();
+  const sl=new THREE.Line(sg,shaft);
+  arrowGroup.add(sl);
+  const hd=new THREE.Mesh(new THREE.ConeGeometry(0.012,0.04,4),new THREE.MeshBasicMaterial({color:0xff7070,transparent:true,opacity:0.7}));
+  arrowGroup.add(hd);
+  arrowObjs.push({sl,sg,shaft,hd});
+}
+
+// ── Eval ──
+function evm(N,t,sig){
+  const w=new Float64Array(N);let ws=0;
+  for(let k=0;k<N;k++){w[k]=Math.pow(P[k],-sig)*Math.pow(P[k+1],-sig);ws+=w[k];}
+  for(let k=0;k<N;k++)w[k]/=ws;
+  let sx=0,sy=0,sz=0;
+  for(let k=0;k<N;k++){
+    const rk=Math.pow(P[k],-sig),thA=LN[k]*t,thB=LN[k+1]*t;
+    sx+=w[k]*(R+rk*Math.cos(thA))*Math.cos(thB);
+    sy+=w[k]*(R+rk*Math.cos(thA))*Math.sin(thB);
+    sz+=w[k]*rk*Math.sin(thA);
+  }
+  return[sx,sy,sz];
+}
+
+// Log derivative contribution at step k: ln(p)*p^{-s}/(1-p^{-s})
+function logDerivContrib(k,t,sig){
+  const ps_r=Math.pow(P[k],-sig)*Math.cos(-LN[k]*t);
+  const ps_i=Math.pow(P[k],-sig)*Math.sin(-LN[k]*t);
+  const dr=1-ps_r, di=-ps_i;
+  const dd=dr*dr+di*di;
+  if(dd<1e-20)return[0,0,0];
+  // p^{-s}/(1-p^{-s}) = (ps_r*dr+ps_i*di)/dd + i*(ps_i*dr-ps_r*di)/dd
+  const qr=(ps_r*dr+ps_i*di)/dd;
+  const qi=(ps_i*dr-ps_r*di)/dd;
+  // multiply by ln(p)
+  const lr=LN[k]*qr, li=LN[k]*qi;
+  // Map to 3D: use same torus parametrization for direction
+  const thB=LN[k+1<P.length?k+1:k]*t;
+  const mag=Math.sqrt(lr*lr+li*li);
+  // Direction: along the torus tangent at this prime's phase
+  return[mag*Math.cos(thB),mag*Math.sin(thB),lr*0.3];
+}
+
+// ── Weil form (simplified discretization) ──
+// W_{jk} = Σ_p ln(p) * p^{-σ} * cos(ln(p)*(γ_j - γ_k))
+// Simplified Weil form for visualization (differs from geometric_engine.py Module 6).
+// Engine uses W_jk = sqrt(ln_j)*p_j^{-1/4} * sqrt(ln_k)*p_k^{-1/4} * cos(dphase*t).
+// This visualization uses an averaged form for real-time performance.
+// Simplified: for a single zero, use K×K matrix over prime indices
+function weilSpectrum(K,t,sig){
+  const M=Math.min(K,30); // cap for performance
+  const mat=[];
+  for(let j=0;j<M;j++){
+    mat[j]=[];
+    for(let k=0;k<M;k++){
+      let v=0;
+      // Gram-like: sum over a few test frequencies
+      const dphase=LN[j]-LN[k];
+      v=LN[j]*Math.pow(P[j],-sig)*Math.cos(dphase*t)+
+        LN[k]*Math.pow(P[k],-sig)*Math.cos(dphase*t);
+      v*=0.5;
+      mat[j][k]=v;
+    }
+  }
+  // Eigenvalues by power iteration on shifted matrix (get min and max)
+  // Simple: compute trace and frobenius norm for estimates
+  let tr=0,frob=0;
+  for(let j=0;j<M;j++){tr+=mat[j][j];for(let k=0;k<M;k++)frob+=mat[j][k]*mat[j][k];}
+  frob=Math.sqrt(frob);
+  // Power iteration for largest eigenvalue
+  let v=new Float64Array(M);for(let i=0;i<M;i++)v[i]=1/Math.sqrt(M);
+  for(let iter=0;iter<30;iter++){
+    const nv=new Float64Array(M);
+    for(let j=0;j<M;j++){let s=0;for(let k=0;k<M;k++)s+=mat[j][k]*v[k];nv[j]=s;}
+    let nm=0;for(let i=0;i<M;i++)nm+=nv[i]*nv[i];nm=Math.sqrt(nm)||1e-15;
+    for(let i=0;i<M;i++)v[i]=nv[i]/nm;
+  }
+  let lmax=0;{const nv=new Float64Array(M);for(let j=0;j<M;j++){let s=0;for(let k=0;k<M;k++)s+=mat[j][k]*v[k];nv[j]=s;}
+  let d=0;for(let i=0;i<M;i++)d+=nv[i]*v[i];lmax=d;}
+  // Rough spectrum: eigenvalues spread from ~lmin to lmax
+  // Use Gershgorin for bounds
+  let gmin=Infinity,gmax=-Infinity;
+  for(let j=0;j<M;j++){
+    let off=0;for(let k=0;k<M;k++)if(k!==j)off+=Math.abs(mat[j][k]);
+    gmin=Math.min(gmin,mat[j][j]-off);
+    gmax=Math.max(gmax,mat[j][j]+off);
+  }
+  return{lmax,gmin,gmax,tr,frob,M,tr_over_M:tr/M};
+}
+
+// ── Rebuild ──
+function rebuild(){
+  const {sigma,N,zi}=S;
+  const t=ZEROS[zi];
+
+  // Layer 1: Trail
+  if(S.showTrail){
+    const pts=new Float32Array(N*3);
+    for(let n=0;n<N;n++){
+      const p=evm(Math.max(n+1,2),t,sigma);
+      pts[n*3]=p[0];pts[n*3+1]=p[1];pts[n*3+2]=p[2];
+    }
+    trailGeo.dispose();trailGeo=new THREE.BufferGeometry();
+    trailGeo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    trailLine.geometry=trailGeo;trailLine.visible=true;
+
+    if(S.glow){
+      glowGeo.dispose();glowGeo=new THREE.BufferGeometry();
+      glowGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pts),3));
+      glowLine.geometry=glowGeo;glowLine.visible=true;
+    }else glowLine.visible=false;
+
+    const cx=pts[(N-1)*3],cy=pts[(N-1)*3+1],cz=pts[(N-1)*3+2];
+    ptM.position.set(cx,cy,cz);ptGl.position.set(cx,cy,cz);
+    ptM.visible=true;ptGl.visible=true;
+
+    // Color by sigma: warm at 0.5, cool at 1.0+
+    const st=Math.max(0,Math.min(1,(sigma-0.3)/0.9));
+    const hue=0.08+st*0.5; // 0.08 (orange) to 0.58 (cyan)
+    trailMat.color.setHSL(hue,0.7,0.5);
+    glowMat.color.setHSL(hue,0.5,0.4);
+    ptMat.color.setHSL(hue,0.8,0.6);
+    ptGlMat.color.setHSL(hue,0.6,0.4);
+  }else{trailLine.visible=false;glowLine.visible=false;ptM.visible=false;ptGl.visible=false;}
+
+  // Layer 2: Arrows
+  if(S.showArrows){
+    const pos=evm(N,t,sigma);
+    const arrowN=Math.min(N,MAX_ARROWS);
+    let totalMag=0;
+    for(let i=0;i<MAX_ARROWS;i++){
+      const o=arrowObjs[i];
+      if(i>=arrowN){o.sl.visible=false;o.hd.visible=false;continue;}
+      const c=logDerivContrib(i,t,sigma);
+      const mag=Math.sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]);
+      totalMag+=mag;
+      if(mag<1e-10){o.sl.visible=false;o.hd.visible=false;continue;}
+      // Place arrow at the trail position for step i
+      const pp=evm(Math.max(i+1,2),t,sigma);
+      const scale=Math.min(mag*2,0.3);
+      const dx=c[0]/mag*scale,dy=c[1]/mag*scale,dz=c[2]/mag*scale;
+      const af=new Float32Array([pp[0],pp[1],pp[2],pp[0]+dx,pp[1]+dy,pp[2]+dz]);
+      o.sg.dispose();o.sg=new THREE.BufferGeometry();
+      o.sg.setAttribute('position',new THREE.BufferAttribute(af,3));
+      o.sl.geometry=o.sg;o.sl.visible=true;
+      o.hd.position.set(pp[0]+dx,pp[1]+dy,pp[2]+dz);
+      o.hd.lookAt(pp[0]+dx*2,pp[1]+dy*2,pp[2]+dz*2);
+      o.hd.visible=true;
+      // Color intensity by magnitude
+      const intensity=Math.min(1,mag*10);
+      o.shaft.opacity=0.3+0.5*intensity;
+      o.hd.material.opacity=0.3+0.5*intensity;
+    }
+    arrowGroup.visible=true;
+    document.getElementById('rd-ld').textContent=totalMag.toFixed(3);
+  }else{
+    arrowGroup.visible=false;
+  }
+
+  // Layer 3: Weil spectrum
+  const ws=weilSpectrum(N,t,sigma);
+  document.getElementById('rd-wm').textContent=ws.gmin.toFixed(4);
+  drawWeil(ws);
+
+  // Diagnostics
+  const pn=evm(N,t,sigma);
+  const pnr=Math.sqrt(pn[0]*pn[0]+pn[1]*pn[1]+pn[2]*pn[2]);
+  document.getElementById('rd-pn').textContent=pnr.toFixed(4);
+
+  // Convergence check
+  let conv='—';
+  if(N>10){
+    const p1=evm(N,t,sigma),p2=evm(Math.max(Math.floor(N/2),2),t,sigma);
+    const d=Math.sqrt((p1[0]-p2[0])**2+(p1[1]-p2[1])**2+(p1[2]-p2[2])**2);
+    if(d<0.001)conv='SÍ (d<0.001)';
+    else if(d<0.01)conv='CASI (d≈'+d.toFixed(4)+')';
+    else conv='NO (d='+d.toFixed(3)+')';
+  }
+  document.getElementById('rd-conv').textContent=conv;
+  document.getElementById('rd-conv').style.color=conv.startsWith('SÍ')?'#60c060':conv.startsWith('CASI')?'#c0c060':'#c06060';
+
+  document.getElementById('ri-s').textContent=sigma.toFixed(2);
+  document.getElementById('ri-n').textContent=N;
+  document.getElementById('ri-g').textContent=ZEROS[zi].toFixed(3);
+
+  axH.visible=S.axes;
+}
+
+// Weil bar chart
+const wc=document.getElementById('wc');const wctx=wc.getContext('2d');
+function drawWeil(ws){
+  if(!S.showWeil){document.getElementById('weil-bar').style.opacity='0';return;}
+  document.getElementById('weil-bar').style.opacity='1';
+  const W=wc.width=wc.offsetWidth*devicePixelRatio;
+  const H=wc.height=wc.offsetHeight*devicePixelRatio;
+  wctx.clearRect(0,0,W,H);
+
+  const pad=4,pw=W-pad*2,ph=H-pad*2;
+
+  // Draw eigenvalue range bar
+  const range=Math.max(Math.abs(ws.gmin),Math.abs(ws.gmax),0.001);
+  const cx=pad+pw/2; // center = 0
+
+  // Background
+  wctx.globalAlpha=0.03;wctx.fillStyle='#60c0a0';
+  wctx.fillRect(pad,pad,pw,ph);
+
+  // Zero line
+  wctx.globalAlpha=0.15;wctx.strokeStyle='#60c0a0';wctx.lineWidth=devicePixelRatio;
+  wctx.beginPath();wctx.moveTo(cx,pad);wctx.lineTo(cx,pad+ph);wctx.stroke();
+
+  // Gershgorin range
+  const x1=cx+(ws.gmin/range)*(pw/2);
+  const x2=cx+(ws.gmax/range)*(pw/2);
+  wctx.globalAlpha=0.25;wctx.fillStyle='#60c0a0';
+  wctx.fillRect(x1,pad+ph*0.2,x2-x1,ph*0.3);
+
+  // λ_max marker
+  const xm=cx+(ws.lmax/range)*(pw/2);
+  wctx.globalAlpha=0.7;wctx.fillStyle='#80e0c0';
+  wctx.fillRect(xm-2*devicePixelRatio,pad+ph*0.15,4*devicePixelRatio,ph*0.4);
+
+  // tr/M marker (mean eigenvalue)
+  const xt=cx+(ws.tr_over_M/range)*(pw/2);
+  wctx.globalAlpha=0.5;wctx.fillStyle='#e0c060';
+  wctx.fillRect(xt-devicePixelRatio,pad+ph*0.1,2*devicePixelRatio,ph*0.5);
+
+  // Labels
+  wctx.globalAlpha=0.35;wctx.font=`${6*devicePixelRatio}px 'IBM Plex Mono'`;wctx.fillStyle='#60c0a0';
+  wctx.fillText(`λ_min≈${ws.gmin.toFixed(2)}`,pad+2,pad+ph-2);
+  wctx.fillText(`λ_max≈${ws.lmax.toFixed(2)}`,W-70*devicePixelRatio,pad+ph-2);
+  wctx.fillText('Weil spectrum',cx-25*devicePixelRatio,pad+7*devicePixelRatio);
+  wctx.globalAlpha=1;
+}
+
+// UI
+const $=id=>document.getElementById(id);
+$('s-sigma').addEventListener('input',()=>{S.sigma=parseFloat($('s-sigma').value);$('v-sigma').textContent=S.sigma.toFixed(2);rebuild();});
+$('s-N').addEventListener('input',()=>{S.N=parseInt($('s-N').value);$('v-N').textContent=S.N;rebuild();});
+$('s-t').addEventListener('input',()=>{S.zi=parseInt($('s-t').value);$('v-t').textContent='γ'+(S.zi+1);rebuild();});
+
+function tog(id,prop){$(id).addEventListener('click',()=>{S[prop]=!S[prop];$(id).classList.toggle('on',S[prop]);rebuild();});}
+tog('b-trail','showTrail');tog('b-arrows','showArrows');tog('b-weil','showWeil');tog('b-glow','glow');
+tog('b-axes','axes');
+
+// Animate sigma from 1.2 to 0.3
+const bp=$('b-play');
+bp.addEventListener('click',()=>{S.animSigma=!S.animSigma;bp.textContent=S.animSigma?'⏸':'▶ Animar σ';bp.classList.toggle('on',S.animSigma);
+  if(S.animSigma&&S.sigma<0.35){S.sigma=1.20;$('s-sigma').value=1.20;}});
+$('b-reset').addEventListener('click',()=>{S.sigma=0.50;S.N=50;S.zi=0;S.animSigma=false;
+  $('s-sigma').value=0.50;$('s-N').value=50;$('s-t').value=0;
+  $('v-sigma').textContent='0.50';$('v-N').textContent='50';$('v-t').textContent='γ₁';
+  bp.textContent='▶ Animar σ';bp.classList.remove('on');rebuild();});
+
+let last=performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=(now-last)*0.001;last=now;
+
+  if(S.animSigma){
+    S.sigma-=dt*0.08; // slow descent
+    if(S.sigma<0.30){S.sigma=0.30;S.animSigma=false;bp.textContent='▶ Animar σ';bp.classList.remove('on');}
+    $('s-sigma').value=S.sigma;$('v-sigma').textContent=S.sigma.toFixed(2);
+    rebuild();
+  }
+
+  // Pulse
+  const p=0.5+0.5*Math.sin(now*0.002);
+  ptGlMat.opacity=0.1+0.12*p;
+  const s=1+0.1*p;ptGl.scale.set(s,s,s);
+
+  O.update();
+  ren.render(scene,cam);
+}
+
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);drawWeil({gmin:0,gmax:0,lmax:0,tr:0,tr_over_M:0,M:1});});
+
+rebuild();
+animate(performance.now());
+})();
+</script>
+</body>
+</html>

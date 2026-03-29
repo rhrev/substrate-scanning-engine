@@ -1,0 +1,423 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geodésicas de ζ · Principio de Mínima Acción</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#03030a;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow-x:hidden;}
+
+#hud{padding:10px 16px 5px;background:rgba(3,3,10,0.97);}
+#hud h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(12px,2vw,19px);color:#eeeef4;}
+#hud .sub{font-size:clamp(6px,0.8vw,8px);font-weight:300;letter-spacing:0.18em;color:#484858;text-transform:uppercase;margin-top:1px;}
+
+#ctrl{padding:5px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:rgba(3,3,10,0.94);border-bottom:1px solid rgba(180,120,60,0.06);}
+.cg{display:flex;align-items:center;gap:4px;}
+.cg label{font-size:7.5px;color:#506058;white-space:nowrap;}
+.cg .v{font-size:10px;font-weight:500;min-width:30px;text-align:right;}
+.cg input[type="range"]{-webkit-appearance:none;height:3px;border-radius:2px;outline:none;cursor:pointer;}
+.cg input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;border:2px solid #0a0a14;cursor:pointer;}
+#s-K{background:rgba(100,180,160,0.15);width:clamp(60px,8vw,100px);}
+#s-K::-webkit-slider-thumb{background:#60b0a0;}
+#s-step{background:rgba(180,120,60,0.15);width:clamp(50px,6vw,80px);}
+#s-step::-webkit-slider-thumb{background:#c08040;}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:7.5px;padding:3px 7px;border-radius:3px;border:1px solid rgba(180,120,60,0.15);background:rgba(180,120,60,0.04);color:#907050;cursor:pointer;transition:all 0.15s;}
+.btn:hover{background:rgba(180,120,60,0.1);}
+.btn.on{background:rgba(180,120,60,0.18);color:#c0a070;border-color:rgba(180,120,60,0.3);}
+.btn.act{background:rgba(220,160,60,0.25);color:#e0c070;border-color:rgba(220,160,60,0.4);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+
+#main{display:flex;gap:0;flex-wrap:wrap;}
+#map-wrap{flex:1;min-width:280px;position:relative;padding:8px 8px 20px 46px;}
+#map-wrap canvas{display:block;width:100%;image-rendering:auto;border:1px solid rgba(180,120,60,0.08);border-radius:3px;cursor:crosshair;}
+.ax-y{position:absolute;left:2px;top:50%;transform:rotate(-90deg) translateX(50%);font-size:8px;color:#607058;font-weight:500;white-space:nowrap;}
+.ax-x{position:absolute;bottom:2px;left:55%;transform:translateX(-50%);font-size:8px;color:#607058;font-weight:500;white-space:nowrap;}
+
+#side{width:clamp(190px,20vw,260px);padding:8px 10px;background:rgba(4,4,14,0.6);border-left:1px solid rgba(180,120,60,0.04);font-size:7px;overflow-y:auto;max-height:calc(100vh - 80px);}
+.st{font-family:'Cormorant Garamond',serif;font-size:9px;font-weight:600;color:#908060;margin-bottom:3px;}
+.dv{height:1px;background:rgba(180,120,60,0.04);margin:5px 0;}
+.ir{display:flex;justify-content:space-between;gap:3px;padding:1px 0;font-size:7px;}
+.ir .il{color:#405050;}.ir .iv{font-weight:500;}
+.note{font-size:6.5px;color:#404848;line-height:1.55;margin-top:3px;}
+.ceq{font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;color:#a09070;margin:3px 0;}
+
+#legend{display:flex;align-items:center;gap:2px;padding:3px 16px;font-size:6.5px;color:#405050;}
+#legend canvas{height:10px;width:clamp(120px,16vw,200px);border-radius:2px;}
+
+@media(max-width:700px){#side{width:100%;max-height:40vh;border-left:none;border-top:1px solid rgba(180,120,60,0.04);}}
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>Geodésicas de ζ · Principio de Mínima Acción sobre la Franja Crítica</h1>
+  <div class="sub">S = ∫ (½|∇V|² + V) ds &nbsp;·&nbsp; Las geodésicas descienden por los valles hacia σ = ½</div>
+</div>
+
+<div id="ctrl">
+  <div class="cg"><label>K</label><input type="range" id="s-K" min="6" max="150" value="40" step="1"><span class="v" style="color:#60b0a0;" id="v-K">40</span></div>
+  <div class="cg"><label>paso</label><input type="range" id="s-step" min="0.001" max="0.05" value="0.008" step="0.001"><span class="v" style="color:#c08040;" id="v-step">0.008</span></div>
+  <button class="btn on" id="b-zeros">◆ Ceros</button>
+  <button class="btn on" id="b-grad">∇ Gradiente</button>
+  <button class="btn on" id="b-geo">Geodésicas</button>
+  <button class="btn" id="b-click">✦ Click → geodésica</button>
+  <button class="btn act" id="b-render">⟳ Renderizar</button>
+</div>
+
+<div id="legend">
+  <span>|−ζ'/ζ| bajo</span><canvas id="lc"></canvas><span>alto</span>
+  <span style="margin-left:6px;color:#e0c040;">◆ ceros</span>
+  <span style="margin-left:4px;color:#ff6040;">─ geodésica</span>
+</div>
+
+<div id="main">
+  <div id="map-wrap">
+    <div class="ax-y">σ (parte real)</div>
+    <div class="ax-x">t (altura en la línea crítica)</div>
+    <canvas id="hm"></canvas>
+  </div>
+  <div id="side">
+    <div class="st">Principio variacional</div>
+    <div class="ceq">δS = 0 donde S = ∫ L(σ,t,σ̇,ṫ) ds</div>
+    <div class="note">
+      El potencial V = −log|−ζ'/ζ| tiene pozos en los ceros y mesetas en las regiones libres.<br><br>
+      Una partícula que desciende por el gradiente de V desde σ > 1 encuentra naturalmente σ = ½ como el fondo del valle, y los ceros como los puntos más profundos a lo largo de ese fondo.<br><br>
+      Las geodésicas son las trayectorias de mínima acción: los caminos que la "partícula" toma bajando el paisaje de energía.
+    </div>
+    <div class="dv"></div>
+    <div class="st">Lectura</div>
+    <div class="ir"><span class="il">cursor σ</span><span class="iv" style="color:#e8a050;" id="ri-s">—</span></div>
+    <div class="ir"><span class="il">cursor t</span><span class="iv" style="color:#a0c860;" id="ri-t">—</span></div>
+    <div class="ir"><span class="il">V(σ,t)</span><span class="iv" style="color:#e06060;" id="ri-V">—</span></div>
+    <div class="ir"><span class="il">∂V/∂σ</span><span class="iv" style="color:#c08060;" id="ri-ds">—</span></div>
+    <div class="ir"><span class="il">∂V/∂t</span><span class="iv" style="color:#80c060;" id="ri-dt">—</span></div>
+    <div class="dv"></div>
+    <div class="st">Geodésicas activas</div>
+    <div id="geo-list" style="line-height:1.5;"></div>
+    <div class="dv"></div>
+    <div class="st">Observaciones</div>
+    <div class="note" id="obs">
+      Pulsa ⟳ para renderizar, luego haz click en el mapa para lanzar geodésicas desde cualquier punto. Observa cómo todas convergen a σ ≈ ½ y se canalizan por los valles entre ceros.
+    </div>
+    <div class="dv"></div>
+    <div class="st">Conexión con Connes</div>
+    <div class="note">
+      La forma de Weil es el funcional de acción. Extremizarla = encontrar las geodésicas. Los eigenvectores del operador prolato son las geodésicas "óptimas" — las que pasan por más ceros con menos primos.<br><br>
+      6 primos → 50 ceros a 10⁻⁵⁵ es el resultado de la geodésica óptima en el paisaje de Weil.
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+function sieve(n){const s=new Uint8Array(n+1);s[0]=s[1]=1;for(let i=2;i*i<=n;i++)if(!s[i])for(let j=i*i;j<=n;j+=i)s[j]=1;const p=[];for(let i=2;i<=n;i++)if(!s[i])p.push(i);return p;}
+const P=sieve(1000).slice(0,152);
+const LN=new Float64Array(P.length);for(let i=0;i<P.length;i++)LN[i]=Math.log(P[i]);
+const ZEROS=[14.134725,21.022040,25.010858,30.424876,32.935062,37.586178,40.918719,43.327073,48.005151,49.773832,52.970321,56.446248,59.347044,60.831779,65.112544,67.079811,69.546402,72.067158,75.704691,77.144840];
+
+const sigMin=0.30,sigMax=1.15,tMin=10,tMax=55;
+
+const S={K:40,stepSize:0.008,showZeros:true,showGrad:true,showGeo:true,clickMode:false};
+let geodesics=[]; // array of [{sigma,t},...] paths
+
+const hm=document.getElementById('hm');
+const ctx=hm.getContext('2d');
+const $=id=>document.getElementById(id);
+
+// Potential: V = -log|sum ln(p)*p^{-s}/(1-p^{-s})|
+// (negated so zeros are minima)
+function V(sigma,t,K){
+  let re=0,im=0;
+  for(let k=0;k<K&&k<P.length;k++){
+    const ps=Math.pow(P[k],-sigma);
+    const th=-LN[k]*t;
+    const pr=ps*Math.cos(th),pi=ps*Math.sin(th);
+    const dr=1-pr,di=-pi;
+    const dd=dr*dr+di*di;
+    if(dd<1e-30)continue;
+    re+=LN[k]*(pr*dr+pi*di)/dd;
+    im+=LN[k]*(pi*dr-pr*di)/dd;
+  }
+  const mag=Math.sqrt(re*re+im*im);
+  return -Math.log(mag+1e-15);
+}
+
+// Gradient of V by finite differences
+const eps=0.002;
+function gradV(sigma,t,K){
+  const ds=(V(sigma+eps,t,K)-V(sigma-eps,t,K))/(2*eps);
+  const dt=(V(sigma,t+eps,K)-V(sigma,t-eps,K))/(2*eps);
+  return[ds,dt];
+}
+
+// Compute geodesic by gradient descent from (s0,t0)
+function computeGeodesic(s0,t0,K,stepSize,maxSteps){
+  const path=[{sigma:s0,t:t0}];
+  let s=s0,t=t0;
+  for(let i=0;i<maxSteps;i++){
+    const [ds,dt]=gradV(s,t,K);
+    const mag=Math.sqrt(ds*ds+dt*dt);
+    if(mag<1e-8)break; // at minimum
+    // Normalize and step
+    const ns=ds/mag,nt=dt/mag;
+    s-=ns*stepSize;
+    t-=nt*stepSize;
+    // Clamp
+    if(s<sigMin||s>sigMax||t<tMin||t>tMax)break;
+    path.push({sigma:s,t:t});
+    // Stop if settled near σ≈0.5
+    if(path.length>50&&Math.abs(s-0.5)<0.02)break;
+  }
+  return path;
+}
+
+// Render
+let gridW=0,gridH=0,gridV=null;
+
+function render(){
+  const K=S.K;
+  const maxPx=K>80?140:K>40?180:240;
+  gridW=maxPx;gridH=Math.floor(maxPx*0.55);
+  hm.width=gridW;hm.height=gridH;
+
+  // Compute V grid
+  gridV=new Float64Array(gridW*gridH);
+  let vmin=Infinity,vmax=-Infinity;
+  for(let iy=0;iy<gridH;iy++){
+    const sigma=sigMax-(iy/(gridH-1))*(sigMax-sigMin);
+    for(let ix=0;ix<gridW;ix++){
+      const t=tMin+(ix/(gridW-1))*(tMax-tMin);
+      const v=V(sigma,t,K);
+      gridV[iy*gridW+ix]=v;
+      if(v<vmin)vmin=v;if(v>vmax)vmax=v;
+    }
+  }
+
+  // Draw heatmap
+  const img=ctx.createImageData(gridW,gridH);
+  for(let i=0;i<gridW*gridH;i++){
+    const nv=(gridV[i]-vmin)/(vmax-vmin+1e-15);
+    // Dark = low V = near zero (deep well)
+    // Color: dark indigo → blue → teal → gold
+    let r,g,b;
+    if(nv<0.2){const u=nv/0.2;r=8+12*u;g=5+15*u;b=20+50*u;}
+    else if(nv<0.45){const u=(nv-0.2)/0.25;r=20-5*u;g=20+45*u;b=70+60*u;}
+    else if(nv<0.7){const u=(nv-0.45)/0.25;r=15+50*u;g=65+70*u;b=130-30*u;}
+    else{const u=(nv-0.7)/0.3;r=65+130*u;g=135+80*u;b=100-50*u;}
+    img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+
+  // Scale up for overlays
+  const cw=hm.offsetWidth,ch=hm.offsetHeight;
+
+  // σ=½ line
+  const y05=(sigMax-0.5)/(sigMax-sigMin)*(gridH-1);
+  ctx.globalAlpha=0.35;ctx.strokeStyle='#e0c040';ctx.lineWidth=1;
+  ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(0,y05);ctx.lineTo(gridW,y05);ctx.stroke();ctx.setLineDash([]);
+
+  // σ=1 line
+  const y1=(sigMax-1.0)/(sigMax-sigMin)*(gridH-1);
+  if(y1>0){ctx.globalAlpha=0.15;ctx.strokeStyle='#888';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(0,y1);ctx.lineTo(gridW,y1);ctx.stroke();ctx.setLineDash([]);}
+
+  // Gradient field
+  if(S.showGrad){
+    ctx.globalAlpha=0.25;
+    const step=K>60?8:6;
+    for(let iy=2;iy<gridH-2;iy+=step){
+      const sigma=sigMax-(iy/(gridH-1))*(sigMax-sigMin);
+      for(let ix=2;ix<gridW-2;ix+=step){
+        const t=tMin+(ix/(gridW-1))*(tMax-tMin);
+        const [ds,dt]=gradV(sigma,t,K);
+        const mag=Math.sqrt(ds*ds+dt*dt);
+        if(mag<0.01)continue;
+        const scale=Math.min(3,mag*0.4)/mag;
+        // Map gradient to pixel displacement
+        const dx=(-dt)*scale*(gridW/(tMax-tMin))*0.8;
+        const dy=(ds)*scale*(gridH/(sigMax-sigMin))*0.8;
+        const len=Math.sqrt(dx*dx+dy*dy);
+        if(len<0.5)continue;
+        ctx.strokeStyle=`rgba(180,140,80,${Math.min(0.5,mag*0.15)})`;
+        ctx.lineWidth=0.7;
+        ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(ix+dx,iy+dy);ctx.stroke();
+        // Arrowhead
+        const ax=dx/len*2,ay=dy/len*2;
+        ctx.beginPath();ctx.moveTo(ix+dx,iy+dy);ctx.lineTo(ix+dx-ax+ay*0.4,iy+dy-ay-ax*0.4);ctx.stroke();
+      }
+    }
+  }
+
+  // Known zeros
+  if(S.showZeros){
+    ctx.globalAlpha=0.9;ctx.fillStyle='#e0c040';
+    for(const z of ZEROS){
+      if(z<tMin||z>tMax)continue;
+      const ix=(z-tMin)/(tMax-tMin)*(gridW-1);
+      ctx.beginPath();
+      ctx.moveTo(ix,y05-3);ctx.lineTo(ix+2.5,y05);ctx.lineTo(ix,y05+3);ctx.lineTo(ix-2.5,y05);ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Geodesics
+  if(S.showGeo){
+    drawGeodesics();
+  }
+
+  ctx.globalAlpha=1;
+
+  // Legend
+  drawLegend(vmin,vmax);
+  updateGeoList();
+}
+
+function drawGeodesics(){
+  const colors=['#ff5030','#ff8040','#ffb060','#e0ff60','#60ffa0','#60c0ff','#a060ff','#ff60c0'];
+  for(let gi=0;gi<geodesics.length;gi++){
+    const path=geodesics[gi];
+    if(path.length<2)continue;
+    const col=colors[gi%colors.length];
+
+    // Trail
+    ctx.globalAlpha=0.85;ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(let i=0;i<path.length;i++){
+      const ix=(path[i].t-tMin)/(tMax-tMin)*(gridW-1);
+      const iy=(sigMax-path[i].sigma)/(sigMax-sigMin)*(gridH-1);
+      i===0?ctx.moveTo(ix,iy):ctx.lineTo(ix,iy);
+    }
+    ctx.stroke();
+
+    // Start point
+    const ix0=(path[0].t-tMin)/(tMax-tMin)*(gridW-1);
+    const iy0=(sigMax-path[0].sigma)/(sigMax-sigMin)*(gridH-1);
+    ctx.globalAlpha=0.9;ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(ix0,iy0,2.5,0,Math.PI*2);ctx.fill();
+
+    // End point
+    const last=path[path.length-1];
+    const ixe=(last.t-tMin)/(tMax-tMin)*(gridW-1);
+    const iye=(sigMax-last.sigma)/(sigMax-sigMin)*(gridH-1);
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(ixe,iye,2,0,Math.PI*2);ctx.fill();
+
+    // Glow along path
+    ctx.globalAlpha=0.08;ctx.strokeStyle=col;ctx.lineWidth=5;
+    ctx.beginPath();
+    for(let i=0;i<path.length;i++){
+      const ix=(path[i].t-tMin)/(tMax-tMin)*(gridW-1);
+      const iy=(sigMax-path[i].sigma)/(sigMax-sigMin)*(gridH-1);
+      i===0?ctx.moveTo(ix,iy):ctx.lineTo(ix,iy);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawLegend(vmin,vmax){
+  const lc=$('lc');const w=lc.width=lc.offsetWidth*(devicePixelRatio||1);const h=lc.height=lc.offsetHeight*(devicePixelRatio||1);
+  const lctx=lc.getContext('2d');
+  for(let x=0;x<w;x++){
+    const nv=x/w;
+    let r,g,b;
+    if(nv<0.2){const u=nv/0.2;r=8+12*u;g=5+15*u;b=20+50*u;}
+    else if(nv<0.45){const u=(nv-0.2)/0.25;r=20-5*u;g=20+45*u;b=70+60*u;}
+    else if(nv<0.7){const u=(nv-0.45)/0.25;r=15+50*u;g=65+70*u;b=130-30*u;}
+    else{const u=(nv-0.7)/0.3;r=65+130*u;g=135+80*u;b=100-50*u;}
+    lctx.fillStyle=`rgb(${r},${g},${b})`;lctx.fillRect(x,0,1,h);
+  }
+}
+
+function updateGeoList(){
+  const gl=$('geo-list');
+  if(geodesics.length===0){gl.innerHTML='<span style="color:#504848;">Click en el mapa para lanzar</span>';return;}
+  const colors=['#ff5030','#ff8040','#ffb060','#e0ff60','#60ffa0','#60c0ff','#a060ff','#ff60c0'];
+  let h='';
+  for(let i=0;i<geodesics.length;i++){
+    const p=geodesics[i];
+    const last=p[p.length-1];
+    const col=colors[i%colors.length];
+    h+=`<div style="color:${col};font-size:6.5px;">● (${p[0].sigma.toFixed(2)},${p[0].t.toFixed(1)}) → σ=${last.sigma.toFixed(3)} t=${last.t.toFixed(2)} [${p.length} pasos]</div>`;
+  }
+  gl.innerHTML=h;
+}
+
+// Auto-generate geodesics from a grid of starting points
+function autoGeodesics(){
+  geodesics=[];
+  // Start from σ=1.0 at various t values
+  const tStarts=[];
+  for(let t=tMin+2;t<tMax-2;t+=4)tStarts.push(t);
+  // Also from σ=0.8 near zeros
+  for(const z of ZEROS){
+    if(z>tMin+1&&z<tMax-1){
+      tStarts.push(z+0.5);
+      tStarts.push(z-0.5);
+    }
+  }
+  // From σ>1
+  for(const t0 of tStarts.slice(0,12)){
+    const path=computeGeodesic(1.0,t0,S.K,S.stepSize,800);
+    if(path.length>5)geodesics.push(path);
+  }
+  // From σ=0.8
+  for(const z of ZEROS.slice(0,8)){
+    if(z>tMin&&z<tMax){
+      const path=computeGeodesic(0.8,z+1,S.K,S.stepSize,500);
+      if(path.length>5)geodesics.push(path);
+    }
+  }
+}
+
+// UI
+$('s-K').addEventListener('input',()=>{S.K=parseInt($('s-K').value);$('v-K').textContent=S.K;});
+$('s-step').addEventListener('input',()=>{S.stepSize=parseFloat($('s-step').value);$('v-step').textContent=S.stepSize.toFixed(3);});
+
+$('b-zeros').addEventListener('click',()=>{S.showZeros=!S.showZeros;$('b-zeros').classList.toggle('on');render();});
+$('b-grad').addEventListener('click',()=>{S.showGrad=!S.showGrad;$('b-grad').classList.toggle('on');render();});
+$('b-geo').addEventListener('click',()=>{S.showGeo=!S.showGeo;$('b-geo').classList.toggle('on');render();});
+$('b-click').addEventListener('click',()=>{S.clickMode=!S.clickMode;$('b-click').classList.toggle('on');});
+
+$('b-render').addEventListener('click',()=>{autoGeodesics();render();$('b-render').classList.remove('act');});
+
+// Click to launch geodesic
+hm.addEventListener('click',e=>{
+  if(!S.clickMode||!gridV)return;
+  const rect=hm.getBoundingClientRect();
+  const fx=(e.clientX-rect.left)/rect.width;
+  const fy=(e.clientY-rect.top)/rect.height;
+  if(fx<0||fx>1||fy<0||fy>1)return;
+  const sigma=sigMax-fy*(sigMax-sigMin);
+  const t=tMin+fx*(tMax-tMin);
+  const path=computeGeodesic(sigma,t,S.K,S.stepSize,1000);
+  if(path.length>2){geodesics.push(path);render();}
+});
+
+// Cursor readout
+hm.addEventListener('mousemove',e=>{
+  if(!gridV)return;
+  const rect=hm.getBoundingClientRect();
+  const fx=(e.clientX-rect.left)/rect.width;
+  const fy=(e.clientY-rect.top)/rect.height;
+  if(fx<0||fx>1||fy<0||fy>1)return;
+  const sigma=sigMax-fy*(sigMax-sigMin);
+  const t=tMin+fx*(tMax-tMin);
+  const v=V(sigma,t,S.K);
+  const [ds,dt]=gradV(sigma,t,S.K);
+  $('ri-s').textContent=sigma.toFixed(3);
+  $('ri-t').textContent=t.toFixed(2);
+  $('ri-V').textContent=v.toFixed(3);
+  $('ri-ds').textContent=ds.toFixed(3);
+  $('ri-dt').textContent=dt.toFixed(3);
+});
+
+// Initial
+autoGeodesics();
+render();
+})();
+window.addEventListener('resize', () => { render(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+\documentclass[10pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyvrb}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\Large\bfseries Substrate Scanning Engine --- Quick Start}\\[4pt]
+{\small v2.0.0 \quad Ricardo Hern\'andez Reveles \quad ORCID: 0009-0001-1993-1471}
+\end{center}
+
+\vspace{6pt}
+\hrule
+\vspace{8pt}
+
+\noindent\textbf{What it does.}\quad
+Takes any system with a linear operator and discrete spectrum, extracts
+29 deterministic geometric features per query point. No statistical
+assumptions. NumPy/SciPy only.
+
+\vspace{4pt}
+\noindent\textbf{The fundamental equation:}\quad
+$p^{-s} = p^{-\sigma}\cdot e^{-i\ln(p)\cdot t}$
+
+\vspace{6pt}
+\noindent\textbf{1. Install}
+\begin{Verbatim}[fontsize=\small, frame=single]
+git clone https://github.com/rhrev/substrate-scanning-engine.git
+cd substrate-scanning-engine
+pip install -r requirements.txt   # numpy>=1.24, scipy>=1.10
+\end{Verbatim}
+
+\vspace{4pt}
+\noindent\textbf{2. Run the core engine (Riemann zeta)}
+\begin{Verbatim}[fontsize=\small, frame=single]
+python pipelines/geometric_engine.py
+\end{Verbatim}
+This prints: 29-feature vector, three-scale decomposition, envelope
+factorization, potential landscape, Weil spectrum, and channel orthogonality
+for $\zeta(s)$, $L(s,\chi)$, and $L(s,E)$.
+
+\vspace{4pt}
+\noindent\textbf{3. Run any application engine}
+\begin{Verbatim}[fontsize=\small, frame=single]
+python applications/sparam_engine.py       # S-parameters (1709/s)
+python applications/motor_diagnosis.py     # Vibration faults (1132/s)
+python applications/phonon_engine.py       # Materials screening (478/s)
+python applications/crypto_curve_engine.py # Elliptic curve audit (274/s)
+\end{Verbatim}
+Each engine generates synthetic data, extracts 29 features, classifies,
+and prints a cross-domain mapping to~$\zeta$.
+
+\vspace{4pt}
+\noindent\textbf{4. Use as a library}
+\begin{Verbatim}[fontsize=\small, frame=single]
+import sys; sys.path.insert(0, 'pipelines')
+from geometric_engine import GeometricEngine, RiemannZeta
+
+ep = RiemannZeta()
+engine = GeometricEngine(ep)
+vec = engine.feature_vector(0.5, 14.134725, 30)  # 29 floats
+print(f"Features: {len(vec)}, phase coherence: {vec[23]:.4f}")
+\end{Verbatim}
+
+\vspace{4pt}
+\noindent\textbf{5. Explore the visualizations}\\
+Open any HTML file in \texttt{visualizations/} in a browser. Requires
+internet for Three.js r128 CDN. 17 interactive 3D scenes: toroidal
+embeddings, potential landscapes, operator spectra, geodesics.
+
+\vspace{4pt}
+\noindent\textbf{6. Add a new domain}\\
+See \texttt{CONTRIBUTING.md}. Short version: write a standalone
+\texttt{.py} in \texttt{applications/} that extracts 29 features from
+your spectrum, include a synthetic demo and cross-domain mapping.
+Reference template: \texttt{sparam\_engine.py}.
+
+\vspace{8pt}
+\hrule
+\vspace{6pt}
+
+\noindent\textbf{All 12 application engines:}
+sparam (SI), motor\_diagnosis (vibration), graph (networks),
+ast (code), cavity (resonators), phonon (materials),
+colorimetry (spectra), wavelet\_3d (volumes), turbulence (cascades),
+image\_spectral (forensics), pathfinding (navigation),
+crypto\_curve (ECC audit).
+
+\vspace{4pt}
+\noindent\textbf{Read \S0 of the paper first.}
+Seven overclaims were produced and corrected. The errata-first protocol is
+the methodology's signature.
+
+\vspace{4pt}
+\noindent\emph{Democratising scepticism is worth more than democratising computation.}
+
+\vspace{4pt}
+\noindent
+License: AGPL-3.0-or-later (code), CC-BY-4.0 (papers).
+DOI: \href{https://doi.org/10.5281/zenodo.19299719}{10.5281/zenodo.19299719}
+
+\end{document}
