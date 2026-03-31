@@ -1,7 +1,36 @@
 # Serie I · Substrate Scanning Engine
-## 16 Domains, 1 Architecture, 29 Features, 13 Engines
+## 16 Domains, 1 Architecture, 29 Core Features, 13 Engines, 5 Pipelines
 
 Ricardo Hernández Reveles — ORCID: 0009-0001-1993-1471 · March 2026
+
+---
+
+### Quick Start
+
+```bash
+# Install
+pip install -r requirements.txt   # numpy, scipy, mpmath
+
+# Verify (runs all 17 engines + 3 assertions)
+bash verify.sh
+
+# Run individual pipelines
+python pipelines/geometric_engine.py      # 31-feature geometric atlas
+python pipelines/cf_features.py           # CF-integer features (10 per-eigenvalue)
+python pipelines/zero_locator.py          # STA zero localization
+
+# Run individual application engines
+python applications/sparam_engine.py      # S-parameter analysis
+python applications/motor_diagnosis.py    # Vibration fault diagnosis
+# ... (all 12 engines are standalone)
+```
+
+### Requirements
+
+- Python 3.10, 3.11, or 3.12
+- numpy ≥ 1.24
+- scipy ≥ 1.10
+- mpmath ≥ 1.3
 
 ---
 
@@ -37,7 +66,7 @@ What it does not lower is the barrier of judgement.
 
 | # | Domain | Engine | Throughput | Features |
 |---|--------|--------|-----------|----------|
-| 1 | ζ(s), L(s,χ), L(s,E) | geometric_engine.py | 125/s | 29 |
+| 1 | ζ(s), L(s,χ), L(s,E) | geometric_engine.py | 125/s | 31 (29+2) |
 | 2 | S-parameters | sparam_engine.py | 1,709/s | 29 |
 | 3 | Motor diagnosis | motor_diagnosis.py | 1,132/s | 29 |
 | 4 | General graphs | graph_engine.py | 833/s | 29 |
@@ -53,15 +82,29 @@ What it does not lower is the barrier of judgement.
 
 Constraint: linear operator + discrete spectrum.
 
+### Pipelines
+
+| # | Pipeline | Purpose | Input | Output |
+|---|----------|---------|-------|--------|
+| 1 | geometric_engine.py | 31-feature geometric atlas | (σ, t, K) + EulerProduct | 31-dim vector |
+| 2 | envelope_pipeline.py | Envelope decomposition v1 | geometric_engine output | θ*(k,γ) weights |
+| 3 | envelope_v2.py | Envelope decomposition v2 | geometric_engine output | Weil + NN comparison |
+| 4 | cf_features.py | CF-integer features | γ_n at D digits | 10 per-eigenvalue + 4 cross |
+| 5 | zero_locator.py | STA zero localization (Riemann only) | [t_min, t_max] | list of Zero tuples |
+
+Pipelines 4–5 are new in v3.0.0. They are parallel to the geometric engine
+(which remains at 31 features). zero_locator.scan() works for RiemannZeta only;
+for other L-functions, use from_values() with externally computed zeros.
+
 ### Zenodo Deposit
 
-This repository corresponds to Zenodo record **10.5281/zenodo.19299719**.
-Cite as: Hernández Reveles, R. (2026). *Substrate Scanning Engine* (v2.0.0). Zenodo. https://doi.org/10.5281/zenodo.19299719
+This repository corresponds to Zenodo record **10.5281/zenodo.19104086**.
+Cite as: Hernández Reveles, R. (2026). *Substrate Scanning Engine* (v3.0.0). Zenodo. https://doi.org/10.5281/zenodo.19104086
 
 ### License
 
 Code: AGPL-3.0-or-later | Papers: CC-BY-4.0
-Dependencies: numpy (BSD-3-Clause), scipy (BSD-3-Clause), Three.js (MIT)
+Dependencies: numpy (BSD-3-Clause), scipy (BSD-3-Clause), mpmath (BSD-3-Clause), Three.js (MIT)
 
 ### Attribution
 

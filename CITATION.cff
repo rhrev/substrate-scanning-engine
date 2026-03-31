@@ -11,13 +11,13 @@ authors:
     family-names: Hernández Reveles
     orcid: 'https://orcid.org/0009-0001-1993-1471'
     affiliation: 'Independent researcher, Guadalajara, México'
-version: 2.0.0
-date-released: '2026-03-28'
+version: 3.0.0
+date-released: '2026-03-30'
 license: AGPL-3.0-or-later
 repository-code: 'https://github.com/rhrev/substrate-scanning-engine'
 identifiers:
   - type: doi
-    value: '10.5281/zenodo.19299719'
+    value: '10.5281/zenodo.19104086'
     description: Zenodo deposit
 keywords:
   - Riemann zeta function
@@ -28,8 +28,14 @@ keywords:
   - Substrate Scanning
   - computational phenomenology
 abstract: >-
-  A modular computational engine that extracts 29 deterministic
-  spectral features from any system with a linear operator and
-  discrete spectrum. Developed from the Riemann zeta function
-  and validated on 16 domains with 12 application engines,
-  3 pipelines, and 17 interactive visualizations.
+  A modular computational engine that extracts 31 deterministic
+  spectral features (29 core, 2 Euler-specific) from any system
+  with a linear operator and discrete spectrum. Includes STA-derived
+  zero localization for the Riemann zeta function and a CF-integer
+  feature pipeline (10 per-eigenvalue, 4 cross-eigenvalue) for
+  diophantine analysis of zeros. Developed from the Riemann zeta
+  function and validated on 16 domains with 12 application engines,
+  5 pipelines, and 19 interactive visualizations. The paper
+  (substrate_scanning_engine.tex) describes the geometric engine
+  and 12 application engines; cf_features.py and zero_locator.py
+  are documented in code and READMEs only (paper update deferred).

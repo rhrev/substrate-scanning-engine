@@ -14,6 +14,13 @@ This project depends on the following third-party software:
 - Copyright (c) 2001-2026, SciPy Developers
 - https://scipy.org/scipylib/license.html
 
+## mpmath
+
+- License: BSD-3-Clause
+- Copyright (c) 2005-2023, Fredrik Johansson and contributors
+- https://github.com/mpmath/mpmath/blob/master/LICENSE
+- Used in: pipelines/cf_features.py, pipelines/zero_locator.py (arbitrary-precision arithmetic)
+
 ## Three.js (r128)
 
 - License: MIT

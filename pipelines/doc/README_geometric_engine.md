@@ -1,6 +1,6 @@
 # geometric_engine.py — Magic Numbers
 
-Core engine. 8 modules, 29 features, supports ζ(s), L(s,χ), L(s,E).
+Core engine. 9 modules, 31 features (29 core + 2 Euler-specific), supports ζ(s), L(s,χ), L(s,E).
 
 ## Module 1: EulerProduct
 
@@ -66,7 +66,15 @@ Core engine. 8 modules, 29 features, supports ζ(s), L(s,χ), L(s,E).
 | `-0.5` | `P**(-0.5)` | Canal B amplitude feature: p^{-1/2} = natural weight at σ = 1/2. |
 | `1e-10` | `np.std(...) < 1e-10` | Guard against computing Spearman ρ on constant vectors. |
 
-## Module 8: GeometricEngine
+## Module 8: EulerPhase
+
+| Value | Location | Meaning |
+|-------|----------|---------|
+| `exp(-π(k/K)²)` | `_gaussian_weights` | Boundary-suppressing window for accumulated argument. Same functional form as the Schwartz-Bruhat kernel f_∞(x) = e^{−πx²} of the archimedean integral in Tate's thesis, but operates here as classical signal windowing — no adelic completeness is invoked (the Critical Circle §6 classifies the Γ connection as "interpretive but not foundational"). Mitigates the divergence of partial Euler products on the critical line (Conrad, Canad. J. Math. 57(2), 2005; cited in Critical Circle Observation 5.6). MVP validation showed 72–93% CV reduction in K-convergence for arg. |
+| `h = 0.01` | `query` | Central-difference step for d(arg)/dt. Larger than PotentialLandscape's h=0.003 because arg varies more slowly than V and cancellation error dominates at smaller h. |
+| `winding_var` | *excluded* | Variance of phase increments. Proved trivially σ-dependent: Spearman ρ = 1.000 against mean(p^{−2σ}). Theoretical cause: Kronecker-Weyl equidistribution (Critical Circle Theorem 2.1(iv)) implies Var(arg(1−p^{−s})) ≈ (1/2)·E[p^{−2σ}] for generic t, reducing winding_var to a deterministic function of σ. Excluded as label leakage. |
+
+## Module 9: GeometricEngine
 
 | Value | Location | Meaning |
 |-------|----------|---------|

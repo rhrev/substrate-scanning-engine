@@ -39,3 +39,4 @@ Thumbs.db
 *.fdb_latexmk
 *.fls
 *:Zone.Identifier
+data/envelope_v2_results.json
