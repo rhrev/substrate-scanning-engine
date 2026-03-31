@@ -2,6 +2,15 @@
 
 All notable changes to the Substrate Scanning Engine are documented in this file.
 
+## [3.1.0] — 2026-03-31
+
+### Changed
+- DOIs updated to v3.1.0 deposit (.19353659) in: README.md, CITATION.cff,
+  papers/quick_start.tex, TODO.md, .zenodo.json, papers/substrate_scanning_engine.tex
+- STA bibitem DOI updated to new deposit (.19353699) in:
+  papers/substrate_scanning_engine.tex, .zenodo.json
+- .zenodo.json description: Canal A → Channel A
+
 ## [3.0.0] — 2026-03-30
 
 ### Added

@@ -15,7 +15,7 @@
 
 \begin{center}
 {\Large\bfseries Substrate Scanning Engine --- Quick Start}\\[4pt]
-{\small v3.0.0 \quad Ricardo Hern\'andez Reveles \quad ORCID: 0009-0001-1993-1471}
+{\small v3.1.0 \quad Ricardo Hern\'andez Reveles \quad ORCID: 0009-0001-1993-1471}
 \end{center}
 
 \vspace{6pt}
@@ -50,6 +50,11 @@ factorization, potential landscape, Weil spectrum, and channel orthogonality
 for $\zeta(s)$, $L(s,\chi)$, and $L(s,E)$.  New in v3.0.0: run
 \verb|python pipelines/cf_features.py| and \verb|python pipelines/zero_locator.py|
 for the CF-integer and zero-localization pipelines.
+\verb|python pipelines/envelope_pipeline.py| optimizes per-prime weights
+$\theta_k$ via L-BFGS; \verb|python pipelines/envelope_v2.py| extends this
+with a neural-net parameterization and Weil quadratic form loss.
+All 5 pipelines: geometric\_engine, cf\_features, zero\_locator,
+envelope\_pipeline, envelope\_v2.
 
 \vspace{4pt}
 \noindent\textbf{3. Run any application engine}
@@ -105,7 +110,7 @@ per_f, cross_f, terms = batch_features(gammas, K=50, dps=100)
 \vspace{4pt}
 \noindent\textbf{7. Explore the visualizations}\\
 Open any HTML file in \texttt{visualizations/} in a browser. Requires
-internet for Three.js r128 CDN. 17 interactive 3D scenes: toroidal
+internet for Three.js r128 CDN. 19 interactive 3D scenes: toroidal
 embeddings, potential landscapes, operator spectra, geodesics.
 
 \vspace{4pt}
@@ -114,6 +119,14 @@ See \texttt{CONTRIBUTING.md}. Short version: write a standalone
 \texttt{.py} in \texttt{applications/} that extracts 29 features from
 your spectrum, include a synthetic demo and cross-domain mapping.
 Reference template: \texttt{sparam\_engine.py}.
+
+\vspace{4pt}
+\noindent\textbf{9. Verify the installation}
+\begin{Verbatim}[fontsize=\small, frame=single]
+bash verify.sh
+\end{Verbatim}
+Runs 20 checks: imports, pipeline smoke tests, and version consistency.
+Re-entrant (safe to run multiple times).
 
 \vspace{8pt}
 \hrule
@@ -137,6 +150,6 @@ the methodology's signature.
 \vspace{4pt}
 \noindent
 License: AGPL-3.0-or-later (code), CC-BY-4.0 (papers).
-DOI: \href{https://doi.org/10.5281/zenodo.19104086}{10.5281/zenodo.19104086}
+DOI: \href{https://doi.org/10.5281/zenodo.19353659}{10.5281/zenodo.19353659}
 
 \end{document}

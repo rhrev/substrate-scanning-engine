@@ -22,7 +22,7 @@ First Zenodo deposit. Subsequent versions are editorial and verification only.
 - [ ] Create release tag `v2.0.0`
 - [ ] Link GitHub repo to Zenodo (Settings → GitHub → flip switch)
 - [ ] Zenodo auto-generates DOI on release; note the assigned DOI
-- [ ] If DOI differs from `10.5281/zenodo.19104086`, update in:
+- [ ] If DOI differs from `10.5281/zenodo.19353659`, update in:
   - `.zenodo.json` (`related_identifiers.identifier`)
   - `CITATION.cff` (`identifiers[0].value`)
   - `README.md` (Zenodo section)
@@ -100,14 +100,22 @@ These are editorial — no new results, no new engines.
 - [ ] Update paper §8 with pilot results (§8.1–§8.3)
 - [ ] GitHub deposit + Zenodo release
 
-## v3.1.0 Dirichlet extension (planned)
+## Known bugs (from v3.0.0 QA audit)
+
+- [ ] PA-9: H2 z-score: observed N=100 vs null N=20 sample mismatch (Low)
+- [ ] PA-10: _build_zero computes CF twice with K vs K+1 (Low)
+- [ ] PA-12: H3 ρ(F4,n) ≡ ρ(F4,γ) trivially for ordered zeros (Low)
+- [ ] PA-16: README_zero_locator "200 iter ≈ 124 bits" should be 138.8 (Medium)
+- [ ] PA-17: scan_mpmath(n_zeros=0) off-by-one → returns 1 zero (Medium)
+
+## v3.2.0 Dirichlet extension (planned)
 
 - [ ] Run zero_locator on DirichletL for q = 3, 4, 5, 7, 8
 - [ ] Extract CF features across multiple L-functions
 - [ ] Test H5 (modulus imprint) and H6 (character orthogonality at CF level)
 - [ ] Extend paper §8 with Dirichlet results
 
-## v3.2.0 BSD pilot (prospective)
+## v3.3.0 BSD pilot (prospective)
 
 - [ ] LMFDB integration for EllipticCurveL (precomputed a_p)
 - [ ] STA zero localization near s=1 for elliptic curve L-functions

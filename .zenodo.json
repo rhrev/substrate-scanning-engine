@@ -7,8 +7,8 @@
       "affiliation": "Independent researcher, Guadalajara, México"
     }
   ],
-  "description": "A modular computational engine that extracts 31 deterministic spectral features (29 core, 2 Euler-specific) from any system with a linear operator and discrete spectrum. Developed from the Riemann zeta function and validated on 16 domains with 13 application engines, 5 pipelines, and 19 interactive visualizations. v3.0.0 adds CF-integer feature extraction (10 per-eigenvalue, 4 cross-eigenvalue) and STA-derived zero localization for the Riemann zeta function. The fundamental decomposition separates infrastructure (universal amplitude decay f(b) = b/(b+1)), signal (zero-specific phase tuning), and arithmetic structure (Channel A) as three orthogonal channels. Code: AGPL-3.0-or-later. Papers: CC-BY-4.0.",
-  "version": "3.0.0",
+  "description": "A modular computational engine that extracts 31 deterministic spectral features (29 core, 2 Euler-specific) from any system with a linear operator and discrete spectrum. Developed from the Riemann zeta function and validated on 16 domains with 12 application engines, 5 pipelines, and 19 interactive visualizations. v3.1.0 adds CF-integer feature extraction (10 per-eigenvalue, 4 cross-eigenvalue) and STA-derived zero localization for the Riemann zeta function. The fundamental decomposition separates infrastructure (universal amplitude decay f(b) = b/(b+1)), signal (zero-specific phase tuning), and arithmetic structure (Channel A) as three orthogonal channels. Code: AGPL-3.0-or-later. Papers: CC-BY-4.0.",
+  "version": "3.1.0",
   "upload_type": "software",
   "publication_date": "2026-03-30",
   "access_right": "open",
@@ -32,6 +32,31 @@
       "identifier": "2602.04022",
       "relation": "references",
       "scheme": "arxiv"
+    },
+    {
+      "identifier": "10.5281/zenodo.19041728",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.18916005",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.19353699",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.19104306",
+      "relation": "references",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.19299719",
+      "relation": "isNewVersionOf",
+      "scheme": "doi"
     }
   ],
   "subjects": [
