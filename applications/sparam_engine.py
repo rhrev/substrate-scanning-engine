@@ -220,7 +220,7 @@ class SParameterData:
 def sp_features(spd):
     """
     Extract 29 spectral features from S-parameter data.
-    Same dimension as geometric_engine and cavity engine.
+    Same dimension as application engines (geometric_engine produces 31: 29 core + 2 Euler-specific).
     """
     freqs = spd.freqs
     N = spd.N_freq

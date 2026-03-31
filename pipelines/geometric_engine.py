@@ -22,7 +22,8 @@ Modules:
   5. PotentialLandscape — V(σ,t) and Laplacian
   6. WeilSpectrum — discretized quadratic form
   7. ChannelOrthogonality — A/B/C independence test
-  8. GeometricFeatureVector — combined output for ML
+  8. EulerPhase — arg(ζ_K) and darg/dt (gaussian-windowed)
+  9. GeometricFeatureVector — combined output for ML
 
 Usage:
   engine = GeometricEngine(RiemannZeta())
@@ -569,7 +570,82 @@ class ChannelOrthogonality:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# MODULE 8: GEOMETRIC FEATURE VECTOR
+# MODULE 8: EULER PHASE
+# ═══════════════════════════════════════════════════════════════════
+
+class EulerPhase:
+    """
+    Accumulated angular coordinate of the Euler product.
+    
+    Computes arg(ζ_K(s)) = Σ_k arg(1 - p_k^{-s}), the angular
+    coordinate of the canonical logarithm's polar decomposition
+    (Critical Circle §1, eq. 2).  V = -log|ζ'/ζ| captures the radial
+    coordinate; arg captures the angular coordinate.  By Cauchy-Riemann,
+    one does not determine the other from finite data.
+    
+    Features:
+      arg_total  — accumulated argument arg(ζ_K) (gaussian-windowed)
+      darg_dt    — angular velocity: d(arg)/dt via central difference.
+                   Near a zero ζ(½+iγ)=0, arg(ζ) changes sign and
+                   |darg/dt| is maximized; away from zeros, arg varies
+                   smoothly.  This explains the 6.37σ zero/non-zero
+                   separation observed in validation — darg/dt is the
+                   derivative of the quantity that Critical Circle
+                   Corollary 4.3 identifies as the only information
+                   surviving on the critical line.
+    
+    Gaussian windowing (w_k = exp(-π(k/K)²)) is applied by default.
+    Partial Euler products on the critical line diverge (Conrad 2005);
+    the accumulated argument inherits this divergence at the truncation
+    boundary.  The gaussian window suppresses boundary terms, yielding
+    72-93% CV reduction in K-convergence (MVP validation).
+    
+    winding_var (variance of phase increments) was excluded: Spearman
+    ρ = 1.000 against mean(p^{-2σ}).  Theoretical cause: Kronecker-Weyl
+    equidistribution (Critical Circle Theorem 2.1(iv)) implies
+    Var(arg(1-p^{-s})) ≈ (1/2)·E[p^{-2σ}] for generic t, making
+    winding_var a deterministic function of σ — label leakage.
+    """
+    
+    def __init__(self, L: EulerProduct):
+        self.L = L
+    
+    @staticmethod
+    def _gaussian_weights(K):
+        """Boundary-suppressing window: w_k = exp(-π(k/K)²).
+        Mitigates divergence of partial Euler products on the critical
+        line (Conrad, Canad. J. Math. 57(2), 2005)."""
+        k = np.arange(K, dtype=np.float64)
+        return np.exp(-np.pi * (k / K)**2)
+    
+    def query(self, sigma, t, K):
+        """Accumulated argument and its t-derivative at (σ, t, K)."""
+        P = self.L.primes(K)
+        w = self._gaussian_weights(K)
+        
+        # arg(ζ_K(s)) = Σ_k w_k · arg(1 - p_k^{-s})
+        s = complex(sigma, t)
+        arg_total = 0.0
+        for k in range(K):
+            ps = complex(P[k])**(-s)
+            arg_total += w[k] * np.angle(1.0 - ps)
+        
+        # d(arg)/dt via central difference (h = 0.01)
+        h = 0.01
+        s_p = complex(sigma, t + h)
+        s_m = complex(sigma, t - h)
+        arg_p = sum(w[k] * np.angle(1.0 - complex(P[k])**(-s_p)) for k in range(K))
+        arg_m = sum(w[k] * np.angle(1.0 - complex(P[k])**(-s_m)) for k in range(K))
+        darg_dt = (arg_p - arg_m) / (2 * h)
+        
+        return {
+            'arg_total': float(arg_total),
+            'darg_dt': float(darg_dt),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# MODULE 9: GEOMETRIC FEATURE VECTOR
 # ═══════════════════════════════════════════════════════════════════
 
 class GeometricEngine:
@@ -588,6 +664,7 @@ class GeometricEngine:
         self.potential = PotentialLandscape(L)
         self.weil = WeilSpectrum(L)
         self.channels = ChannelOrthogonality(L)
+        self.euler_phase = EulerPhase(L)
     
     def query(self, sigma, t, K, compute_scales=False):
         """
@@ -646,6 +723,9 @@ class GeometricEngine:
         # Channel orthogonality
         features['channels'] = self.channels.test(K, t)
         
+        # Euler phase (gaussian-windowed arg)
+        features['euler_phase'] = self.euler_phase.query(sigma, t, K)
+        
         return features
     
     def feature_vector(self, sigma, t, K, compute_scales=False):
@@ -688,6 +768,9 @@ class GeometricEngine:
             f['channels'].get('A_B_max_rho', 0),
             f['channels'].get('A_C_max_rho', 0),
             f['channels'].get('B_C_max_rho', 0),
+            # Euler phase
+            f['euler_phase']['arg_total'],
+            f['euler_phase']['darg_dt'],
         ]
         
         return np.array(vec, dtype=np.float64)
@@ -702,6 +785,7 @@ class GeometricEngine:
             'fb_mean', 'fb_max', 'fb_decay', 'phase_cos', 'phase_sin', 'phase_coherence',
             'poincare_r', 'poincare_gap',
             'ortho_AB', 'ortho_AC', 'ortho_BC',
+            'euler_arg', 'euler_darg_dt',
         ]
 
 
@@ -743,6 +827,8 @@ if __name__ == '__main__':
         print(f"    gap(Weil) = {f['weil']['spectral_gap']:.6f}")
         print(f"    Poincaré gap = {f['poincare']['gap']:.4f}")
         print(f"    phase coherence = {f['envelope']['phase_coherence']:.4f}")
+        print(f"    euler arg = {f['euler_phase']['arg_total']:.4f}")
+        print(f"    euler darg/dt = {f['euler_phase']['darg_dt']:.4f}")
     
     # ── Compare zero vs non-zero ──
     print(f"\n{'─'*72}")

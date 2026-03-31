@@ -30,7 +30,7 @@ jobs:
       - name: Run core engine
         run: python pipelines/geometric_engine.py
 
-      - name: Verify 29 features — core engine
+      - name: Verify 31 features — core engine
         run: |
           python -c "
           import sys, numpy as np
@@ -39,10 +39,60 @@ jobs:
           ep = RiemannZeta()
           engine = GeometricEngine(ep)
           vec = engine.feature_vector(0.5, 14.134725, 6)
-          assert len(vec) == 29, f'Expected 29 features, got {len(vec)}'
+          assert len(vec) == 31, f'Expected 31 features, got {len(vec)}'
           assert all(np.isfinite(vec)), 'Non-finite features detected'
           print(f'PASS: {len(vec)} features, all finite')
           "
+
+      - name: Run cf_features pipeline
+        run: python pipelines/cf_features.py
+
+      - name: Verify cf_features — 10 features, no leakage
+        run: |
+          python -c "
+          import sys, numpy as np
+          sys.path.insert(0, 'pipelines')
+          from cf_features import CFFeatureExtractor
+          from mpmath import mp, zetazero
+          mp.dps = 50
+          gamma = zetazero(1).imag
+          vec, terms = CFFeatureExtractor.extract(gamma, K=25, dps=50)
+          assert len(vec) == 10, f'Expected 10 CF features, got {len(vec)}'
+          # F1 may be NaN at low K; check rest
+          assert sum(np.isfinite(vec)) >= 9, f'Too many NaN: {vec}'
+          print(f'PASS: {len(vec)} CF features')
+          "
+
+      - name: Verify zero_locator — scan finds gamma_1, Dirichlet raises
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'pipelines')
+          from zero_locator import ZeroLocator
+          from geometric_engine import RiemannZeta, DirichletL
+          from mpmath import mp, zetazero, fabs
+          mp.dps = 50
+
+          # Scan must find gamma_1
+          loc = ZeroLocator(RiemannZeta())
+          zeros = loc.scan(13, 16, dps=30, cf_depth=10)
+          assert len(zeros) >= 1, 'scan(13,16) found no zeros'
+          gamma_1 = zetazero(1).imag
+          best = min(zeros, key=lambda z: float(fabs(z.gamma - gamma_1)))
+          err = float(fabs(best.gamma - gamma_1))
+          assert err < 1e-20, f'gamma_1 error too large: {err}'
+          print(f'PASS: gamma_1 error = {err:.2e}')
+
+          # Dirichlet must raise
+          try:
+              ZeroLocator(DirichletL(4, {1:1.0, 3:-1.0})).scan(0, 20)
+              assert False, 'Should have raised NotImplementedError'
+          except NotImplementedError:
+              print('PASS: Dirichlet correctly raises NotImplementedError')
+          "
+
+      - name: Run zero_locator demo
+        run: python pipelines/zero_locator.py
 
       - name: Run standalone application engines
         run: |

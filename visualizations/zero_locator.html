@@ -1,0 +1,343 @@
+<!-- Copyright (c) 2026 Ricardo Hernández Reveles -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero Locator · STA Fases I+II · |η(½+it)|</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#04040c;color:#d0d4e0;font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;}
+canvas#c{display:block;position:fixed;top:0;left:0;z-index:0;cursor:grab;}
+canvas#c:active{cursor:grabbing;}
+
+#hud{position:fixed;top:0;left:0;right:0;padding:7px 14px 4px;background:linear-gradient(180deg,rgba(4,4,12,0.97),rgba(4,4,12,0));z-index:10;pointer-events:none;}
+#hud h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:clamp(11px,1.7vw,16px);color:#eef0f4;}
+#hud .sub{font-size:clamp(6px,0.7vw,7.5px);font-weight:300;letter-spacing:0.15em;color:#404858;text-transform:uppercase;margin-top:1px;}
+
+#ctrl{position:fixed;top:38px;left:0;right:0;padding:4px 14px;z-index:25;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(4,4,12,0.93);border-bottom:1px solid rgba(80,160,200,0.06);}
+.cg{display:flex;align-items:center;gap:3px;}
+.cg label{font-size:7px;color:#506068;white-space:nowrap;}
+.cg .v{font-size:9px;font-weight:500;min-width:20px;text-align:right;}
+.cg input[type="range"]{-webkit-appearance:none;height:3px;border-radius:2px;width:clamp(50px,7vw,90px);background:rgba(80,160,200,0.06);outline:none;cursor:pointer;}
+.cg input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#5090c0;border:2px solid #080814;cursor:pointer;}
+.btn{font-size:7px;padding:2px 6px;border-radius:3px;border:1px solid rgba(80,160,200,0.12);background:rgba(80,160,200,0.03);color:#607888;cursor:pointer;white-space:nowrap;}
+.btn.on{background:rgba(80,160,200,0.15);color:#90c0d0;border-color:rgba(80,160,200,0.25);}
+
+#info{position:fixed;top:68px;right:8px;background:rgba(4,4,14,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(80,160,200,0.05);border-radius:6px;padding:7px 9px;z-index:20;font-size:7px;line-height:1.5;width:clamp(155px,15vw,210px);}
+.st{font-family:'Cormorant Garamond',serif;font-size:9px;font-weight:600;color:#6090a0;margin-bottom:2px;}
+.dv{height:1px;background:rgba(80,160,200,0.04);margin:4px 0;}
+.ir{display:flex;justify-content:space-between;gap:3px;padding:1px 0;font-size:6.5px;}
+.ir .il{color:#405060;}.ir .iv{font-weight:500;}
+.note{font-size:6.5px;color:#404850;line-height:1.5;margin-top:3px;}
+.good{color:#40a060;}.bad{color:#c05040;}.warn{color:#c09040;}
+
+#info-left{position:fixed;top:68px;left:8px;background:rgba(4,4,14,0.78);backdrop-filter:blur(14px);border:1px solid rgba(80,160,200,0.05);border-radius:6px;padding:7px 9px;z-index:20;font-size:7px;line-height:1.5;max-width:clamp(155px,16vw,220px);}
+
+@media(max-width:700px){#info{display:none;}#info-left{display:none;}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <h1>Zero Locator · STA Fases I+II · |η(½+it)|</h1>
+  <div class="sub">Phase I: float64 valley detection · Phase II: mpmath.altzeta refinement · 10 zeros, t ∈ [10, 50]</div>
+</div>
+
+<div id="ctrl">
+  <div class="cg"><label>Exag.</label><input type="range" id="exag" min="0.5" max="5" step="0.1" value="2"><span class="v" id="exagV">2.0</span></div>
+  <div class="cg"><label>Opacity</label><input type="range" id="opac" min="0.1" max="1" step="0.05" value="0.7"><span class="v" id="opacV">0.7</span></div>
+  <button class="btn on" id="toggleZeros" onclick="toggleZ()">Zeros</button>
+  <button class="btn" id="toggleThresh" onclick="toggleT()">Threshold</button>
+  <button class="btn" id="togglePhase1" onclick="toggleP1()">Phase I valleys</button>
+</div>
+
+<div id="info">
+  <div class="st">Detected Zeros</div>
+  <div class="dv"></div>
+  <div id="zlist"></div>
+</div>
+
+<div id="info-left">
+  <div class="st">STA Protocol</div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">Phase I</span><span class="iv">float64 scan</span></div>
+  <div class="ir"><span class="il">Step</span><span class="iv">0.05</span></div>
+  <div class="ir"><span class="il">M (partial sum)</span><span class="iv">80 terms</span></div>
+  <div class="ir"><span class="il">Valley detect</span><span class="iv">10th percentile</span></div>
+  <div class="dv"></div>
+  <div class="ir"><span class="il">Phase II</span><span class="iv">mpmath.altzeta</span></div>
+  <div class="ir"><span class="il">Method</span><span class="iv">golden section</span></div>
+  <div class="ir"><span class="il">Threshold</span><span class="iv warn">10⁻³</span></div>
+  <div class="ir"><span class="il">Genuine residual</span><span class="iv good">< 10⁻⁴³</span></div>
+  <div class="dv"></div>
+  <div class="note">
+    Phase I gives |η| ≈ 0.04 at zeros (not 0).<br>
+    Valley detection by relative ordering.<br>
+    Phase II converges to machine epsilon.<br>
+    RESIDUAL_THRESHOLD = 10⁻³ rejects<br>
+    false valleys.
+  </div>
+  <div class="dv"></div>
+  <div class="note">
+    <span class="warn">Riemann ζ only.</span> Dirichlet / EC →<br>
+    from_values() with external zeros.<br>
+    Partial sums do not converge at σ=½<br>
+    for general L-functions.
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+// |η(1/2+it)| sampled at step=0.05, t in [10, 50], M=80 (Phase I)
+// Precomputed from zero_locator._eta_fast
+const T_MIN=10, T_MAX=50, STEP=0.05;
+const N_SAMPLES=Math.floor((T_MAX-T_MIN)/STEP);
+
+// Compute eta on the fly (lightweight M=40 for visualization)
+function etaFast(t,M){
+  M=M||40;
+  let re=0,im=0;
+  for(let n=1;n<=M;n++){
+    const sign=(n%2===1)?1:-1;
+    const logn=Math.log(n);
+    re+=sign*Math.exp(-0.5*logn)*Math.cos(-t*logn);
+    im+=sign*Math.exp(-0.5*logn)*Math.sin(-t*logn);
+  }
+  return Math.sqrt(re*re+im*im);
+}
+
+// Known zeros (from zero_locator.scan(10,50,dps=50))
+const ZEROS=[
+  {gamma:14.1347251417,residual:1.84e-43},
+  {gamma:21.0220396388,residual:2.15e-43},
+  {gamma:25.0108575801,residual:6.20e-44},
+  {gamma:30.4248761259,residual:1.27e-43},
+  {gamma:32.9350615877,residual:2.05e-43},
+  {gamma:37.5861781588,residual:2.07e-43},
+  {gamma:40.9187190121,residual:3.19e-43},
+  {gamma:43.3270732809,residual:1.07e-43},
+  {gamma:48.0051508812,residual:2.45e-43},
+  {gamma:49.7738324777,residual:1.89e-43}
+];
+
+// ── THREE SETUP ──
+const canvas=document.getElementById('c');
+const W=()=>window.innerWidth, H=()=>window.innerHeight;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(50,W()/H(),0.1,200);
+camera.position.set(0,8,12);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setSize(W(),H());
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setClearColor(0x04040c);
+
+// Orbit
+let drag=false,prevX=0,prevY=0,rotX=0.4,rotY=-0.3;
+canvas.addEventListener('pointerdown',e=>{drag=true;prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;rotY+=(e.clientX-prevX)*0.005;rotX+=(e.clientY-prevY)*0.005;rotX=Math.max(-0.2,Math.min(1.4,rotX));prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('pointerup',()=>drag=false);
+canvas.addEventListener('wheel',e=>{const f=e.deltaY>0?1.05:0.95;camera.position.multiplyScalar(f);});
+
+// Controls
+let exag=2, opac=0.7, showZeros=true, showThresh=false, showP1=false;
+const exagEl=document.getElementById('exag'), opacEl=document.getElementById('opac');
+exagEl.oninput=()=>{exag=+exagEl.value;document.getElementById('exagV').textContent=exag.toFixed(1);buildSurface();};
+opacEl.oninput=()=>{opac=+opacEl.value;document.getElementById('opacV').textContent=opac.toFixed(2);if(surfMesh)surfMesh.material.opacity=opac;};
+function toggleZ(){showZeros=!showZeros;document.getElementById('toggleZeros').classList.toggle('on');zeroGroup.visible=showZeros;}
+function toggleT(){showThresh=!showThresh;document.getElementById('toggleThresh').classList.toggle('on');if(threshPlane)threshPlane.visible=showThresh;}
+function toggleP1(){showP1=!showP1;document.getElementById('togglePhase1').classList.toggle('on');if(p1Group)p1Group.visible=showP1;}
+
+// ── BUILD SURFACE ──
+let surfMesh=null, threshPlane=null;
+const zeroGroup=new THREE.Group();
+const p1Group=new THREE.Group();
+scene.add(zeroGroup);
+scene.add(p1Group);
+
+function buildSurface(){
+  if(surfMesh){scene.remove(surfMesh);surfMesh.geometry.dispose();}
+  if(threshPlane){scene.remove(threshPlane);threshPlane.geometry.dispose();}
+
+  // Sample the surface
+  const samples=[];
+  const tVals=[];
+  let maxEta=0;
+  for(let i=0;i<=N_SAMPLES;i++){
+    const t=T_MIN+i*STEP;
+    tVals.push(t);
+    const v=etaFast(t,40);
+    samples.push(v);
+    if(v>maxEta)maxEta=v;
+  }
+
+  // Build ribbon geometry (t along X, |η| along Y)
+  const width=20; // scene units for t range
+  const geom=new THREE.BufferGeometry();
+  const pos=new Float32Array((N_SAMPLES+1)*2*3);
+  const col=new Float32Array((N_SAMPLES+1)*2*3);
+  const idx=[];
+
+  for(let i=0;i<=N_SAMPLES;i++){
+    const x=(tVals[i]-T_MIN)/(T_MAX-T_MIN)*width-width/2;
+    const y=samples[i]*exag;
+    const z_front=0.3, z_back=-0.3;
+    const t_norm=samples[i]/maxEta;
+
+    // Color: deep blue at valleys, teal at peaks
+    const r=0.05+t_norm*0.2;
+    const g=0.15+t_norm*0.45;
+    const b=0.4+t_norm*0.4;
+
+    pos[i*6]=x; pos[i*6+1]=y; pos[i*6+2]=z_front;
+    pos[i*6+3]=x; pos[i*6+4]=y; pos[i*6+5]=z_back;
+    col[i*6]=r; col[i*6+1]=g; col[i*6+2]=b;
+    col[i*6+3]=r*0.7; col[i*6+4]=g*0.7; col[i*6+5]=b*0.7;
+
+    if(i<N_SAMPLES){
+      const a=i*2, b_=i*2+1, c=i*2+2, d=i*2+3;
+      idx.push(a,c,b_, b_,c,d);
+    }
+  }
+
+  geom.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geom.setAttribute('color',new THREE.BufferAttribute(col,3));
+  geom.setIndex(idx);
+  geom.computeVertexNormals();
+
+  const mat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:opac,side:THREE.DoubleSide});
+  surfMesh=new THREE.Mesh(geom,mat);
+  scene.add(surfMesh);
+
+  // Line on top
+  const linePos=new Float32Array((N_SAMPLES+1)*3);
+  for(let i=0;i<=N_SAMPLES;i++){
+    linePos[i*3]=pos[i*6]; linePos[i*3+1]=pos[i*6+1]+0.01; linePos[i*3+2]=0;
+  }
+  const lineGeom=new THREE.BufferGeometry();
+  lineGeom.setAttribute('position',new THREE.BufferAttribute(linePos,3));
+  const lineMat=new THREE.LineBasicMaterial({color:0x80c0e0,transparent:true,opacity:0.6});
+  const line=new THREE.Line(lineGeom,lineMat);
+  surfMesh.add(line);
+
+  // Threshold plane
+  const threshY=1e-3*exag;
+  const plGeom=new THREE.PlaneGeometry(width+2,1);
+  const plMat=new THREE.MeshBasicMaterial({color:0xc09040,transparent:true,opacity:0.08,side:THREE.DoubleSide});
+  threshPlane=new THREE.Mesh(plGeom,plMat);
+  threshPlane.position.set(0,threshY,0);
+  threshPlane.visible=showThresh;
+  scene.add(threshPlane);
+
+  // Zero markers
+  zeroGroup.clear();
+  ZEROS.forEach((z,i)=>{
+    const x=(z.gamma-T_MIN)/(T_MAX-T_MIN)*width-width/2;
+    const y=0;
+
+    // Pillar
+    const pillarGeom=new THREE.CylinderGeometry(0.03,0.03,exag*0.5,8);
+    const pillarMat=new THREE.MeshBasicMaterial({color:0x40c080,transparent:true,opacity:0.3});
+    const pillar=new THREE.Mesh(pillarGeom,pillarMat);
+    pillar.position.set(x,exag*0.25,0);
+    zeroGroup.add(pillar);
+
+    // Sphere at base
+    const sGeom=new THREE.SphereGeometry(0.08,16,16);
+    const sMat=new THREE.MeshBasicMaterial({color:0x40e090});
+    const sphere=new THREE.Mesh(sGeom,sMat);
+    sphere.position.set(x,y,0);
+    zeroGroup.add(sphere);
+
+    // Ring at surface level
+    const rGeom=new THREE.RingGeometry(0.12,0.18,24);
+    const rMat=new THREE.MeshBasicMaterial({color:0x40c080,transparent:true,opacity:0.4,side:THREE.DoubleSide});
+    const ring=new THREE.Mesh(rGeom,rMat);
+    ring.position.set(x,y,0);
+    ring.rotation.x=Math.PI/2;
+    zeroGroup.add(ring);
+  });
+
+  // Phase I valley markers
+  p1Group.clear();
+  // Find local minima in samples
+  for(let i=1;i<samples.length-1;i++){
+    if(samples[i]<samples[i-1]&&samples[i]<samples[i+1]){
+      const threshold=samples.slice().sort((a,b)=>a-b)[Math.floor(samples.length*0.1)];
+      if(samples[i]<threshold){
+        const x=(tVals[i]-T_MIN)/(T_MAX-T_MIN)*width-width/2;
+        const y=samples[i]*exag;
+        const vGeom=new THREE.ConeGeometry(0.06,0.15,6);
+        const vMat=new THREE.MeshBasicMaterial({color:0xc09040,transparent:true,opacity:0.5});
+        const cone=new THREE.Mesh(vGeom,vMat);
+        cone.position.set(x,y+0.15,0);
+        cone.rotation.z=Math.PI;
+        p1Group.add(cone);
+      }
+    }
+  }
+  p1Group.visible=showP1;
+
+  // t-axis labels
+  buildAxisLabels(width);
+}
+
+function buildAxisLabels(width){
+  // Simple tick marks along t-axis
+  const tickMat=new THREE.LineBasicMaterial({color:0x304050,transparent:true,opacity:0.3});
+  for(let t=10;t<=50;t+=5){
+    const x=(t-T_MIN)/(T_MAX-T_MIN)*width-width/2;
+    const g=new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x,-0.1,0),new THREE.Vector3(x,0.1,0)
+    ]);
+    scene.add(new THREE.Line(g,tickMat));
+  }
+  // Base line
+  const bGeom=new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-width/2,0,0),new THREE.Vector3(width/2,0,0)
+  ]);
+  scene.add(new THREE.Line(bGeom,new THREE.LineBasicMaterial({color:0x304050,transparent:true,opacity:0.2})));
+}
+
+// ── ZERO LIST ──
+function buildZeroList(){
+  const el=document.getElementById('zlist');
+  let html='';
+  ZEROS.forEach((z,i)=>{
+    html+=`<div class="ir"><span class="il">γ<sub>${i+1}</sub></span><span class="iv">${z.gamma.toFixed(4)}</span></div>`;
+    html+=`<div class="ir"><span class="il">|η|</span><span class="iv good">${z.residual.toExponential(1)}</span></div>`;
+    if(i<ZEROS.length-1)html+=`<div style="height:2px"></div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ── ANIMATE ──
+function animate(){
+  requestAnimationFrame(animate);
+  if(!drag){rotY+=0.0005;}
+  const dist=camera.position.length();
+  camera.position.set(
+    dist*Math.sin(rotY)*Math.cos(rotX),
+    dist*Math.sin(rotX),
+    dist*Math.cos(rotY)*Math.cos(rotX)
+  );
+  camera.lookAt(0,1,0);
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=W()/H();
+  camera.updateProjectionMatrix();
+  renderer.setSize(W(),H());
+});
+
+buildSurface();
+buildZeroList();
+animate();
+</script>
+</body>
+</html>

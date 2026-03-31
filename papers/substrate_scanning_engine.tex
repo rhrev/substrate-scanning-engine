@@ -42,7 +42,7 @@ decomposes the resulting dynamics into three separable scales (drift, spiral,
 continued-fraction modulation), constructs the electrostatic potential
 $V(\sigma,t) = -\log\lvert -\zeta'/\zeta \rvert$, computes its Laplacian
 (confirming harmonicity between zeros at $0.07\%$ median residual), and
-extracts 29 deterministic features per query point. Applied to the Riemann
+extracts 31 deterministic features per query point (29 core, 2 Euler-specific). Applied to the Riemann
 zeta function, the engine discriminates zeros from non-zeros with $5.6\sigma$
 separation on phase coherence alone, using only the partial Euler product.
 
@@ -153,9 +153,9 @@ around this single equation.
 
 The Euler product $\prod_p (1 - p^{-s})^{-1}$ converges absolutely for
 $\sigma > 1$. At $\sigma = 1/2$, the partial products do not converge
-(Conrad~\cite{Conrad2005}, extending earlier work of Goldfeld and Kurokawa
-et~al.). The non-convergence is not a technical obstacle---it is the
-fundamental structural fact. Kurokawa's ``Deep Riemann Hypothesis'' asserts
+(Conrad~\cite{Conrad2005}, extending earlier work of Goldfeld~\cite{Goldfeld1976} and Kurokawa
+et~al.~\cite{Kurokawa1992}). The non-convergence is not a technical obstacle---it is the
+fundamental structural fact. Kurokawa's ``Deep Riemann Hypothesis''~\cite{Kurokawa1992} asserts
 that convergence of partial Euler products at the center of the critical
 strip would imply something strictly deeper than the generalized Riemann
 hypothesis.
@@ -171,9 +171,10 @@ statistical assumptions.
 \label{sec:engine}
 % ══════════════════════════════════════════════════════════════════════
 
-The engine consists of eight modules, each independently testable. The input
-is an Euler product (abstract base class); the output is a 29-dimensional
-feature vector per query point $(\sigma, t, K)$.
+The engine consists of nine modules, each independently testable. The input
+is an Euler product (abstract base class); the output is a 31-dimensional
+feature vector per query point $(\sigma, t, K)$: 29~core features shared
+across all domains, plus 2~Euler-specific features from Module~8.
 
 \subsection{Module 1: Euler Product}
 
@@ -189,15 +190,17 @@ elliptic curves.
 
 Maps the Euler product to weighted coordinates on the mixed torus
 $\mathbb{T}^2_{(p_k, p_{k+1})}$ via $p^{-s} = p^{-\sigma}\cdot e^{-i\omega
-t}$. The embedding is standard (Bohr torus, 1920s). What is specific to this
+t}$. The embedding is standard (Bohr torus~\cite{Bohr1924}). What is specific to this
 work is the pair-weighted parametrization and the decomposition into three
 scales.
 
 \subsection{Module 3: Three Scales}
 
-The trajectory $P(N)$ decomposes into: Scale~1 (drift, $\sim 1/\ln N$,
-divergent by Mertens), Scale~2 (spiral, $\sim N^{-1.4}$,
-reference-independent), Scale~3 (CF modulation, classical Khinchin). The
+The trajectory $P(N)$ decomposes into: Scale~1 (drift, ${\sim}1/\ln N$,
+divergent by Mertens), Scale~2 (spiral, ${\sim}N^{-1.4}$,
+reference-independent), Scale~3 (CF modulation, classical Khinchin;
+L\'evy rate validated at $3.42 \pm 0.39$ bits/term over 100 zeros at
+100-digit precision~\cite{STA2026}). The
 decomposition is specific to this embedding; the scales may not have
 counterparts in other parametrizations.
 
@@ -236,19 +239,59 @@ eigenvalue detects the zero; the spectral gap measures resolution.
 
 \subsection{Module 7: Channel Orthogonality}
 
-Tests independence between Canal~A (arithmetic: $v_2$, $\mathrm{ord}_2$,
-$\chi$, $a_p$), Canal~B (amplitude: $\ln p$, $p^{-1/2}$), and Canal~C
+Tests independence between Channel~A (arithmetic: $v_2$, $\mathrm{ord}_2$,
+$\chi$, $a_p$), Channel~B (amplitude: $\ln p$, $p^{-1/2}$), and Channel~C
 (phase: $\cos(\ln p \cdot \gamma)$, $\sin(\ln p \cdot \gamma)$). Maximum
 Spearman~$\rho$ between column pairs. For~$\zeta$: $A\perp B$
 ($\rho < 0.28$), $A\perp C$ ($\rho < 0.33$), $B$ not orthogonal to~$C$
 (share $\ln p$).
 
-\subsection{Module 8: Feature Vector}
+\subsection{Module 8: Euler Phase (Accumulated Argument)}
 
-Combines all modules into a 29-dimensional vector: 3~meta ($\sigma$, $t$,
+The accumulated argument of the partial Euler product:
+\[
+  \mathrm{arg}(\zeta_K(s))
+    = \sum_{k=1}^{K} w_k\,\mathrm{arg}(1 - p_k^{-s}),
+\]
+where $w_k = e^{-\pi(k/K)^2}$ is a Gaussian boundary-suppressing window.
+The term ``phase'' in this module refers to the complex argument of the
+local Euler factor $(1-p^{-s})$, not to the oscillatory phases
+$\theta_p(t) = -t\ln p$ of Module~2 or the phase coherence of Module~4.
+The distinction: $\theta_p$ is linear in~$t$ and encodes frequency;
+$\mathrm{arg}(1-p^{-s})$ is non-linear and encodes the geometry of the
+local factor.
+
+Two features are extracted: the accumulated argument $\mathrm{arg}(\zeta_K)$
+and its angular velocity $d(\mathrm{arg})/dt$ via central difference.  Near
+a zero $\zeta(1/2+i\gamma)=0$, the argument changes sign and
+$|d(\mathrm{arg})/dt|$ is maximized; away from zeros it varies smoothly.
+In validation, $d(\mathrm{arg})/dt$ achieved zero/non-zero separation of
+$6.4\sigma$---the highest of all 31~features.
+
+The Gaussian window mitigates the divergence of partial Euler products on the
+critical line (Conrad~\cite{Conrad2005}): the accumulated argument inherits
+this divergence at the truncation boundary.  Validation showed 72--93\% CV
+reduction in $K$-convergence.
+
+A candidate third feature---the variance of argument increments across
+primes---was excluded after validation revealed it to be a deterministic
+function of~$\sigma$ (Spearman $\rho = 1.000$ against
+$\mathrm{mean}(p^{-2\sigma})$).  The theoretical cause is Kronecker--Weyl
+equidistribution of $\{t\ln p\}$ on $S^1$~\cite{CriticalCircle}: for generic~$t$,
+$\mathrm{Var}(\mathrm{arg}(1-p^{-s})) \approx \tfrac{1}{2}\,E[p^{-2\sigma}]$,
+reducing the observable to a proxy for~$\sigma$.  Including it would
+constitute label leakage in any $\sigma$-classification task.
+
+These two features require Euler product local factors and have no analog in
+the 12~application engines, which remain at 29~core features.
+
+\subsection{Module 9: Feature Vector}
+
+Combines all modules into a 31-dimensional vector: 3~meta ($\sigma$, $t$,
 $K$), 4~torus, 6~potential ($V$, $\nabla V$, $\Delta V$, harmonicity),
 5~Weil (eigenvalues), 6~envelope ($f(b)$ stats, phase coherence),
-2~Poincar\'e (radius, gap), 3~channel ($\rho$ cross-correlations). Output is
+2~Poincar\'e (radius, gap), 3~channel ($\rho$ cross-correlations),
+2~Euler phase (accumulated argument, angular velocity). Output is
 a \texttt{numpy} array, deterministic, reproducible, and computable in
 ${\sim}8\,$ms per query.
 
@@ -260,19 +303,22 @@ ${\sim}8\,$ms per query.
 
 \subsection{Zero Discrimination}
 
-At $K=30$, $\sigma=0.5$, the three features with highest zero/non-zero
-separation are: phase coherence ($5.6\sigma$), $V$~potential ($2.4\sigma$),
+At $K=30$, $\sigma=0.5$, the four features with highest zero/non-zero
+separation are: angular velocity $d(\mathrm{arg})/dt$ from Module~8
+($6.4\sigma$), phase coherence ($5.6\sigma$), $V$~potential ($2.4\sigma$),
 and gradient magnitude ($0.75\sigma$). Phase coherence alone classifies zeros
-with zero training. This is the Canal~C signal: at a zero, the phases
+with zero training. This is the Channel~C signal: at a zero, the phases
 $\ln(p)\cdot\gamma$ conspire, producing high coherence; away from zeros, they
-cancel.
+cancel. The angular velocity achieves stronger separation because near a zero
+the argument of $\zeta$ changes sign, maximizing $|d(\mathrm{arg})/dt|$;
+away from zeros the argument varies smoothly.
 
 \subsection{Envelope Factorization}
 
 Per-zero optimal weights are \textsc{zero-specific} (mean pairwise
-$|r| = 0.14$). The third axis beyond Canal~A and~B is
+$|r| = 0.14$). The third axis beyond Channel~A and~B is
 $\cos(\ln(p)\cdot\gamma)$---the phase of the target zero evaluated at each
-prime ($\rho = -0.59$, $p = 6.6\times 10^{-4}$ at $K=30$). Canal~A ($v_2$,
+prime ($\rho = -0.59$, $p = 6.6\times 10^{-4}$ at $K=30$). Channel~A ($v_2$,
 $\mathrm{ord}_2$) is absent from the optimal weights at every~$K$ tested
 ($r < 0.1$). The optimal operator for zero detection is $f(b)\cdot\cos(\omega)$,
 which is purely spectral.
@@ -303,7 +349,7 @@ The engine runs on elliptic curve $L$-functions with zero code changes. For
 four toy curves ($y^2 = x^3 + ax + b$), the potential~$V$ at $\sigma=1$
 discriminates rank: the curve with a rational point (suggesting rank
 $\ge 1$) has $V = -1.32$, deeper than rank-0 curves ($V \approx -1.00$ to
-$-1.23$). Canal~A ($a_p$) is orthogonal to all geometric features
+$-1.23$). Channel~A ($a_p$) is orthogonal to all geometric features
 ($\rho < 0.11$). The engine also maps to Cayley graph spectra: eigenvalues
 of the graph Laplacian correspond to zeta zeros, the spectral gap
 corresponds to the zero-free region, and the Ramanujan bound corresponds to
@@ -356,7 +402,7 @@ features. We include it for completeness, not for borrowed relevance.
   computational verification and geometric visualization.
 
 \item The toroidal embedding via $p^{-s}$ on the Bohr torus is classical
-  (Bohr 1920s). Our contribution: the pair-weighted mixed-torus
+  (Bohr~\cite{Bohr1924}). Our contribution: the pair-weighted mixed-torus
   parametrization and three-scale decomposition.
 
 \item The identity $f(b) = b/(b+1)$ as the Poincar\'e compactification in
@@ -365,7 +411,7 @@ features. We include it for completeness, not for borrowed relevance.
   application fails (gap grows, cone does not close).
 
 \item The class number identity $S - k/2 = -h(-p)/2$ is derivable from
-  Dirichlet 1839. Our contribution: the route of discovery (Substrate
+  Dirichlet~\cite{Dirichlet1839}. Our contribution: the route of discovery (Substrate
   Scanning through 5~phases) and explicit verification across 961~primes.
 
 \item The electrostatic interpretation of $\log\lvert -\zeta'/\zeta \rvert$
@@ -409,7 +455,7 @@ evidence. The engine is the distillation of what survived.
 
 \subsection{BSD Verification}
 
-The engine generates 29 geometric features per $(\sigma, t)$ query for any
+The engine generates 31 geometric features per $(\sigma, t)$ query for any
 elliptic curve $L$-function. A classifier trained on feature vectors near
 $s = 1$ for curves of known rank could predict rank for curves of unknown
 rank. The test is binary and falsifiable: does the $V(\sigma)$ profile near
@@ -437,7 +483,7 @@ design.
 The S-matrix $S(f)$ of a 4-port differential channel is a spectrum
 parametrized by frequency~$f$. The mixed-mode decomposition into $S_{dd}$
 (differential), $S_{cc}$ (common mode), and $S_{dc}$ (mode conversion) maps
-exactly to Canal~B, Canal~A, and cross-channel respectively. The motor
+exactly to Channel~B, Channel~A, and cross-channel respectively. The motor
 generates 29~features from $S(f)$ in $0.58\,$ms per file, classifying
 channels as PASS/MARGINAL/FAIL at 1709 classifications/second. Validated on
 5~synthetic profiles: resonant channels, lossy channels, and high-crosstalk
@@ -608,7 +654,7 @@ scale is $\cos(\ln(p)\cdot\gamma)$.
 
 2D FFT with azimuthal averaging yields a radial power spectrum $P(f)$ from
 grayscale images. The engine generates 29~features: spectral slope (natural
-images follow $1/f^2$, per Field 1987), band energies, peak detection,
+images follow $1/f^2$, per Field~\cite{Field1987}), band energies, peak detection,
 angular isotropy, spectral centroid, and forgery anomaly scoring. A forgery
 detection module compares local vs.\ global spectral slope across
 $16\times 16$ blocks to identify pasted regions. Validated on 6~synthetic
@@ -643,7 +689,7 @@ the torus embedding, and effective resistance is $f(b)$.
 
 For elliptic curves $y^2 = x^3 + ax + b$ over $\mathbb{F}_p$, brute-force
 point counting gives $\#E(\mathbb{F}_p)$ and $a_p = p + 1 - \#E$. The
-engine generates 29~features from group order factorization (Canal~A: largest
+engine generates 29~features from group order factorization (Channel~A: largest
 prime factor ratio, smoothness, cofactor), embedding degree (Cross:
 MOV/Frey--R\"uck vulnerability), Frobenius eigenvalue structure, anomalous
 flag ($\#E = p$), and a composite security score. Validated on 5~curves:
@@ -654,7 +700,7 @@ supersingular ($a_p = 0$). Classifier: 5/5 correct, with
 anomalous/MOV/supersingular correctly flagged as WEAK with multiple issues.
 Limitation: brute-force counting is $O(p^2)$, limiting~$p$ to ${\sim}500$.
 Real cryptographic curves use $p > 2^{200}$. The cross-domain mapping: group
-order is the spectral gap, factorization structure is Canal~A, embedding
+order is the spectral gap, factorization structure is Channel~A, embedding
 degree is the Ramanujan bound, and $a_p/(2\sqrt{p})$ is
 $\cos(\ln(p)\cdot\gamma)$.
 
@@ -696,7 +742,8 @@ zero-change transfer.
 
 \begin{enumerate}[label=(\alph*)]
 \item \texttt{geometric\_engine.py} --- self-contained Python engine
-  (numpy/scipy only), 8~modules, 29~features, ${\sim}8\,$ms per query.
+  (numpy/scipy only), 9~modules, 31~features (29~core + 2~Euler-specific),
+  ${\sim}8\,$ms per query.
   Supports $\zeta(s)$, $L(s,\chi)$, $L(s,E)$ with \texttt{EllipticCurveL}
   class. AGPL-3.0.
 \item \texttt{sparam\_engine.py} --- S-parameter spectral engine (1709/s).
@@ -724,10 +771,11 @@ zero-change transfer.
   over $\mathbb{F}_p$, 5~vulnerability classes (274/s at $p=101$).
 \end{enumerate}
 
-All engines share the same 29-feature core architecture.
+All engines share the same 29-feature core architecture; the core engine
+produces 31 (29~core + 2~Euler-specific from Module~8).
 
 Additional deliverables:
-\begin{enumerate}[resume,label=(\roman*)]
+\begin{enumerate}[resume,label=(\alph*)]
 \item \texttt{envelope\_pipeline.py} (v1) and \texttt{envelope\_v2.py} ---
   optimization pipelines for envelope weights. L-BFGS and neural network
   variants.
@@ -771,25 +819,25 @@ linearization. It generates features, not demonstrations. Its value is in
 filtering: generating cheap geometric coordinates that concentrate expensive
 computation on the few candidates that matter.
 
-The phrase that closes the arc: $t$ parametrises the critical line.
+The phrase that closes the arc: $t$ parametrizes the critical line.
 Everything else is scaffolding.
 \begin{equation*}
   p^{-s} = p^{-\sigma} \cdot e^{-i\ln(p)\cdot t}
 \end{equation*}
 This equation is a fact, not a choice. $p^{-\sigma}$ is the amplitude.
 $e^{-i\omega t}$ is the phase. The zeros are the values of~$t$ where all
-phases conspire. $f(b)$ organises the amplitude. $\cos(\omega)$ organises
-the phase. Canal~A is orthogonal to both. Everything in this paper---the
+phases conspire. $f(b)$ organizes the amplitude. $\cos(\omega)$ organizes
+the phase. Channel~A is orthogonal to both. Everything in this paper---the
 embedding, the three scales, the potential, the 16~domains, the motor---is
-scaffolding around this single factorisation.
+scaffolding around this single factorization.
 
-A note on democratisation. The engine lowers the barrier of access: anyone
+A note on democratization. The engine lowers the barrier of access: anyone
 with Python and a browser can explore~$\zeta$, diagnose a turbine, or screen
 a material. What it does not lower is the barrier of judgement. The
 7~overclaims in~\S0 were produced by the same tool that produced the
 surviving results. Detecting them required domain knowledge the tool does not
 have. Accessible tools without accessible scepticism produce false
-confidence. The real democratisation in this paper is not the motor---it
+confidence. The real democratization in this paper is not the motor---it
 is~\S0. The errata-first protocol teaches that the tool fails, when it
 fails, and how to detect the failure. \emph{Democratising scepticism is
 worth more than democratising computation.}
@@ -798,7 +846,7 @@ worth more than democratising computation.}
 % ══════════════════════════════════════════════════════════════════════
 % BIBLIOGRAPHY
 % ══════════════════════════════════════════════════════════════════════
-\begin{thebibliography}{9}
+\begin{thebibliography}{15}
 
 \bibitem{Connes2026}
 A.~Connes,
@@ -832,6 +880,51 @@ Image Synthesis.
 In \textit{DGM4MICCAI 2024}, LNCS 15224, pp.\ 11--21, Springer, 2025.
 \texttt{arXiv:2402.19043}.
 \texttt{doi:10.1007/978-3-031-72744-3\_2}.
+
+\bibitem{STA2026}
+R.~Hern\'andez Reveles,
+\emph{Technical Report: Autonomous Traversal Synchrony Algorithm (STA)},
+Serie~I, v1.2 (2026). DOI: 10.5281/zenodo.19104200.
+% Validates L\'evy rate at 3.42 bits/term for 100 zeta zeros (pilot).
+% Operates exclusively in Channel~C of the SSE framework.
+
+\bibitem{CriticalCircle}
+R.~Hern\'andez Reveles,
+\emph{The Critical Circle: a Topological Cartography of the Critical
+  Line via the Canonical Logarithm},
+Serie~I (2026). DOI: 10.5281/zenodo.19104306.
+% Theorem 2.1: unconditional, from ln + TFA + Kronecker--Weyl.
+% Corollary 4.1: zeros strictly complex in b-world.
+
+\bibitem{Bohr1924}
+H.~Bohr,
+\emph{Zur Theorie der fastperiodischen Funktionen~I--III},
+Acta Mathematica \textbf{45}--\textbf{47} (1924--1926).
+
+\bibitem{Dirichlet1839}
+P.\,G.\,L.~Dirichlet,
+Recherches sur diverses applications de l'analyse infinit\'esimale
+\`a la th\'eorie des nombres,
+\emph{J.\ reine angew.\ Math.}\ \textbf{19} (1839), 324--369.
+
+\bibitem{Field1987}
+D.\,J.~Field,
+Relations between the statistics of natural images and the response
+properties of cortical cells,
+\emph{J.\ Opt.\ Soc.\ Am.\ A} \textbf{4} (1987), no.~12, 2379--2394.
+
+\bibitem{Goldfeld1976}
+D.~Goldfeld,
+The nonvanishing of $L(1,\chi)$ and the Siegel zero (after
+Iwaniec--Kowalski),
+in \emph{Analytic Number Theory} (Y.~Motohashi, ed.),
+London Math.\ Soc.\ Lecture Note Ser.\ \textbf{247},
+Cambridge Univ.\ Press, 1997, pp.~141--172.
+
+\bibitem{Kurokawa1992}
+N.~Kurokawa,
+On the meromorphy of Euler products,
+\emph{Proc.\ London Math.\ Soc.}\ (3) \textbf{53} (1992), 1--47.
 
 \end{thebibliography}
 
