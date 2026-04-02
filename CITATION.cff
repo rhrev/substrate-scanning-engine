@@ -17,7 +17,7 @@ license: AGPL-3.0-or-later
 repository-code: 'https://github.com/rhrev/substrate-scanning-engine'
 identifiers:
   - type: doi
-    value: '10.5281/zenodo.19353659'
+    value: '10.5281/zenodo.19378670'
     description: Zenodo deposit
 keywords:
   - Riemann zeta function

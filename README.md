@@ -98,8 +98,8 @@ for other L-functions, use from_values() with externally computed zeros.
 
 ### Zenodo Deposit
 
-This repository corresponds to Zenodo record **10.5281/zenodo.19353659**.
-Cite as: Hernández Reveles, R. (2026). *Substrate Scanning Engine* (v3.1.1). Zenodo. https://zenodo.org/records/19353659
+This repository corresponds to Zenodo record **10.5281/zenodo.19378670**.
+Cite as: Hernández Reveles, R. (2026). *Substrate Scanning Engine* (v3.1.1). Zenodo. https://zenodo.org/records/19378670
 
 ### License
 
