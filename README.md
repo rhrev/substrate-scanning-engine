@@ -1,7 +1,7 @@
 # Serie I · Substrate Scanning Engine
 ## 16 Domains, 1 Architecture, 29 Core Features, 13 Engines, 5 Pipelines
 
-Ricardo Hernández Reveles — ORCID: 0009-0001-1993-1471 · March 2026
+Ricardo Hernández Reveles — ORCID: 0009-0003-2000-0737 · March 2026
 
 ---
 
