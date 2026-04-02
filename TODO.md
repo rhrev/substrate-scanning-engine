@@ -22,7 +22,7 @@ First Zenodo deposit. Subsequent versions are editorial and verification only.
 - [ ] Create release tag `v2.0.0`
 - [ ] Link GitHub repo to Zenodo (Settings → GitHub → flip switch)
 - [ ] Zenodo auto-generates DOI on release; note the assigned DOI
-- [ ] If DOI differs from `10.5281/zenodo.19378670`, update in:
+- [ ] If DOI differs from `10.5281/zenodo.19379148`, update in:
   - `.zenodo.json` (`related_identifiers.identifier`)
   - `CITATION.cff` (`identifiers[0].value`)
   - `README.md` (Zenodo section)
