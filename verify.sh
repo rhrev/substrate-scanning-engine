@@ -1,11 +1,11 @@
 #!/bin/bash
-# verify.sh — Local CI replication for SSE v3.1.0
+# verify.sh — Local CI replication for SSE v3.1.1
 # Run from the repository root.
 # Prerequisites: python3 (3.10+), pip install -r requirements.txt
 set -e
 
 echo "========================================================================"
-echo "SSE v3.1.0 — LOCAL VERIFICATION"
+echo "SSE v3.1.1 — LOCAL VERIFICATION"
 echo "========================================================================"
 echo "Python: $(python3 --version 2>&1)"
 echo ""
